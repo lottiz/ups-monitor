@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="EFCore.NamingConventions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\UPSControlCenter.Core\UPSControlCenter.Core.csproj" />
+    <ProjectReference Include="..\..\src\UPSControlCenter.Contracts\UPSControlCenter.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\UPSControlCenter.Infrastructure\UPSControlCenter.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\UPSControlCenter.Infrastructure.Sqlite\UPSControlCenter.Infrastructure.Sqlite.csproj" />
+    <ProjectReference Include="..\..\src\UPSControlCenter.Simulator\UPSControlCenter.Simulator.csproj" />
+    <ProjectReference Include="..\..\src\UPSControlCenter.Nut\UPSControlCenter.Nut.csproj" />
+    <ProjectReference Include="..\..\src\UPSControlCenter.SafetyAgent\UPSControlCenter.SafetyAgent.csproj" />
+    <ProjectReference Include="..\..\src\UPSControlCenter.Notifications\UPSControlCenter.Notifications.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

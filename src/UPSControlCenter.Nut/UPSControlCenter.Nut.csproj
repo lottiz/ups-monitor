@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Client NUT condiviso fra Orchestrator e Safety Agent. Dipende solo da astrazioni di
+       logging/options, NON dal framework ASP.NET Core né da Npgsql: così il Safety Agent può
+       usarlo restando indipendente da PostgreSQL e Docker (docs/03). -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\UPSControlCenter.Core\UPSControlCenter.Core.csproj" />
+  </ItemGroup>
+</Project>

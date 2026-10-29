@@ -1,0 +1,33 @@
+# Build
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+
+# Segreti e configurazione locale: mai versionati (§15).
+.env
+.env.*
+!.env.example
+docker-compose.override.yml
+**/keys-dev/
+**/*.pfx
+**/*.key
+**/*.pem
+secrets/
+
+# Dati locali
+**/app.db
+**/*.db
+**/*.db-wal
+**/*.db-shm
+backups/
+
+# Log
+*.log
+logs/

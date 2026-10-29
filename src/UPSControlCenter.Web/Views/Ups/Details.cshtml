@@ -1,0 +1,100 @@
+@using UPSControlCenter.Core.Entities
+@model UpsDevice
+@{
+    ViewData["Title"] = Model.Name;
+    var status = ViewBag.Status as UpsStatusDto;
+}
+
+<h1 class="h3 mb-3">@Model.Name</h1>
+
+<div class="row g-3">
+    <div class="col-12 col-xl-7">
+        @if (status is not null)
+        {
+            <partial name="_UpsCard" model="status" />
+        }
+
+        <div class="card">
+            <div class="card-header fw-semibold">Andamento ultime 24 ore</div>
+            <div class="card-body">
+                <canvas id="historyChart" height="120" data-ups-id="@Model.Id"></canvas>
+                <p class="small text-body-secondary mt-2 mb-0">
+                    I punti mancanti corrispondono a intervalli senza letture valide: non vengono
+                    interpolati, per non suggerire dati che non esistono.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-5">
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Connessione NUT</div>
+            <div class="card-body">
+                <dl class="row small mb-0">
+                    <dt class="col-6">Host NUT</dt><dd class="col-6">@Model.NutHost</dd>
+                    <dt class="col-6">Porta</dt><dd class="col-6">@Model.NutPort</dd>
+                    <dt class="col-6">Nome UPS in NUT</dt><dd class="col-6">@Model.NutUpsName</dd>
+                    <dt class="col-6">Firmware</dt>
+                    <dd class="col-6">@(Model.FirmwareVersion ?? "non disponibile")</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Parametri di acquisizione</div>
+            <div class="card-body">
+                <form asp-action="UpdateSettings" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label" for="pollingIntervalSeconds">
+                            Intervallo di polling (secondi)
+                        </label>
+                        <input class="form-control" type="number" min="2" max="300"
+                               id="pollingIntervalSeconds" name="pollingIntervalSeconds"
+                               value="@Model.PollingIntervalSeconds" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="communicationTimeoutSeconds">
+                            Timeout comunicazione (secondi)
+                        </label>
+                        <input class="form-control" type="number" min="5" max="600"
+                               id="communicationTimeoutSeconds" name="communicationTimeoutSeconds"
+                               value="@Model.CommunicationTimeoutSeconds" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="staleDataThresholdSeconds">
+                            Soglia dato obsoleto (secondi)
+                        </label>
+                        <input class="form-control" type="number" min="10" max="3600"
+                               id="staleDataThresholdSeconds" name="staleDataThresholdSeconds"
+                               value="@Model.StaleDataThresholdSeconds" required />
+                        <div class="form-text">
+                            Deve essere maggiore dell'intervallo di polling.
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Salva</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header fw-semibold">Variabili NUT grezze</div>
+            <div class="card-body">
+                <p class="small text-body-secondary">
+                    Elenco di ciò che il driver fornisce realmente: i campi assenti qui non
+                    possono essere mostrati altrove.
+                </p>
+                <button class="btn btn-sm btn-outline-secondary" id="loadRaw"
+                        data-ups-id="@Model.Id">
+                    Carica variabili
+                </button>
+                <pre class="mt-3 small mb-0" id="rawOutput"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/lib/chartjs/chart.umd.min.js"></script>
+<script src="~/js/ups-details.js"></script>
+}

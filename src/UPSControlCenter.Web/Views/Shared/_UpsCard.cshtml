@@ -1,0 +1,89 @@
+@model UpsStatusDto
+@{
+    // Il colore comunica lo stato a colpo d'occhio, ma il testo resta sempre esplicito:
+    // il colore da solo non è accessibile.
+    var (badgeClass, badgeText) = Model switch
+    {
+        { IsStale: true } => ("text-bg-secondary", "Dato obsoleto"),
+        { NutConnected: false } => ("text-bg-secondary", "NUT non connesso"),
+        { IsLowBattery: true } => ("text-bg-danger", "Batteria scarica"),
+        { IsOnBattery: true } => ("text-bg-warning", "Su batteria"),
+        { IsOnLine: true } => ("text-bg-success", "Alimentazione di rete"),
+        _ => ("text-bg-secondary", "Stato non determinabile")
+    };
+
+    string Fmt(decimal? value, string unit) =>
+        value is { } v ? $"{v:0.##} {unit}" : "non disponibile";
+
+    string FmtRuntime(int? seconds) =>
+        seconds is { } s ? TimeSpan.FromSeconds(s).ToString(@"hh\:mm\:ss") : "non disponibile";
+}
+
+<div class="border rounded p-3 mb-3" data-ups-id="@Model.Id">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+        <div>
+            <h2 class="h5 mb-1">@Model.Name</h2>
+            <div class="small text-body-secondary">
+                @(Model.Manufacturer ?? "produttore non disponibile") ·
+                @(Model.Model ?? "modello non disponibile")
+                @if (!string.IsNullOrWhiteSpace(Model.Serial))
+                {
+                    <text>· S/N @Model.Serial</text>
+                }
+            </div>
+        </div>
+        <div class="text-end">
+            <span class="badge @badgeClass" data-role="status-badge">@badgeText</span>
+            <div class="small text-body-secondary mt-1" data-role="status-text">@Model.StatusText</div>
+        </div>
+    </div>
+
+    @if (Model.IsStale || !Model.NutConnected)
+    {
+        <div class="alert alert-warning py-2 small" role="alert">
+            @(Model.NutError ?? "Il dato mostrato non è verificabile come attuale.")
+        </div>
+    }
+
+    <div class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-2 small">
+        <div><span class="text-body-secondary">Carica batteria</span><br />
+            <span data-role="charge">@Fmt(Model.BatteryChargePercent, "%")</span></div>
+        <div><span class="text-body-secondary">Autonomia residua</span><br />
+            <span data-role="runtime">@FmtRuntime(Model.BatteryRuntimeSeconds)</span></div>
+        <div><span class="text-body-secondary">Carico</span><br />
+            <span data-role="load">@Fmt(Model.LoadPercent, "%")</span></div>
+        <div><span class="text-body-secondary">Potenza</span><br />
+            <span>@Fmt(Model.RealPowerWatts, "W")</span></div>
+        <div><span class="text-body-secondary">Tensione ingresso</span><br />
+            <span data-role="vin">@Fmt(Model.InputVoltage, "V")</span></div>
+        <div><span class="text-body-secondary">Tensione uscita</span><br />
+            <span>@Fmt(Model.OutputVoltage, "V")</span></div>
+        <div><span class="text-body-secondary">Frequenza ingresso</span><br />
+            <span>@Fmt(Model.InputFrequency, "Hz")</span></div>
+        <div><span class="text-body-secondary">Tensione batteria</span><br />
+            <span>@Fmt(Model.BatteryVoltage, "V")</span></div>
+    </div>
+
+    @if (Model.PhaseData.Count > 0)
+    {
+        <details class="mt-3">
+            <summary class="small">Dati trifase (@Model.PhaseData.Count valori)</summary>
+            <dl class="row small mt-2 mb-0">
+                @foreach (var kv in Model.PhaseData.OrderBy(k => k.Key))
+                {
+                    <dt class="col-6 col-md-4 text-truncate">@kv.Key</dt>
+                    <dd class="col-6 col-md-8">@kv.Value</dd>
+                }
+            </dl>
+        </details>
+    }
+
+    <div class="small text-body-secondary mt-3">
+        Ultima comunicazione:
+        <span data-role="last-comm">
+            @(Model.LastCommunicationAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
+              ?? "mai")
+        </span>
+        · <a asp-controller="Ups" asp-action="Details" asp-route-id="@Model.Id">Dettagli</a>
+    </div>
+</div>

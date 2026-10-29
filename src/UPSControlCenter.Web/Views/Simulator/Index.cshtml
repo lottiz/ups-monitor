@@ -1,0 +1,114 @@
+@{
+    ViewData["Title"] = "Simulatore blackout";
+}
+
+<h1 class="h3 mb-3">Simulatore blackout</h1>
+
+<div class="alert alert-info" role="alert">
+    Il simulatore usa <strong>lo stesso motore decisionale</strong> dell'esecuzione reale, con
+    adapter esclusivamente fittizi. Nessuna azione può raggiungere un dispositivo reale.
+</div>
+
+<div class="row g-3">
+    <div class="col-12 col-xl-4">
+        <div class="card">
+            <div class="card-header fw-semibold">Parametri dello scenario</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label" for="preset">Scenario predefinito</label>
+                    <select class="form-select" id="preset">
+                        <option value="">(personalizzato)</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="name">Nome</label>
+                    <input class="form-control" id="name" value="Scenario personalizzato" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="blackoutDuration">Durata blackout (secondi)</label>
+                    <input class="form-control" type="number" id="blackoutDuration" value="2400"
+                           min="0" max="86400" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="initialRuntime">Autonomia iniziale (secondi)</label>
+                    <input class="form-control" type="number" id="initialRuntime" value="2400"
+                           min="0" max="86400" />
+                    <div class="form-text">
+                        Lasciare vuoto per simulare un UPS che non fornisce
+                        <code>battery.runtime</code>.
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="initialCharge">Carica iniziale (%)</label>
+                    <input class="form-control" type="number" id="initialCharge" value="100"
+                           min="0" max="100" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="decay">Consumo autonomia (secondi per secondo)</label>
+                    <input class="form-control" type="number" step="0.1" id="decay" value="1.5"
+                           min="0" max="100" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="lowBatteryAt">Stato LB al secondo</label>
+                    <input class="form-control" type="number" id="lowBatteryAt" placeholder="mai" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="commLostFrom">Perdita comunicazione dal secondo</label>
+                    <input class="form-control" type="number" id="commLostFrom" placeholder="mai" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="commLostTo">al secondo</label>
+                    <input class="form-control" type="number" id="commLostTo" placeholder="—" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="powerRestoredAt">Ritorno corrente al secondo</label>
+                    <input class="form-control" type="number" id="powerRestoredAt"
+                           placeholder="non torna" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="secondBlackoutAt">Secondo blackout al secondo</label>
+                    <input class="form-control" type="number" id="secondBlackoutAt"
+                           placeholder="nessuno" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="orchestratorCrashAt">
+                        Crash orchestrator al secondo
+                    </label>
+                    <input class="form-control" type="number" id="orchestratorCrashAt"
+                           placeholder="nessuno" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="tick">Granularità (secondi)</label>
+                    <input class="form-control" type="number" id="tick" value="10" min="1" max="300" />
+                </div>
+                <button class="btn btn-primary w-100" id="runSimulation">Esegui simulazione</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-8">
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Esito</div>
+            <div class="card-body">
+                <div id="summary" class="text-body-secondary">Nessuna simulazione eseguita.</div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">Timeline</span>
+                <a class="btn btn-sm btn-outline-secondary d-none" id="exportLink" href="#">
+                    Esporta CSV
+                </a>
+            </div>
+            <div class="card-body">
+                <div id="timelineTable"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+<script src="~/js/simulator.js"></script>
+}

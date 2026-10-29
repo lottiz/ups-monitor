@@ -1,0 +1,95 @@
+# UPS Control Center — Safety Agent (§13)
+#
+# Questo servizio garantisce la protezione anche con Docker, PostgreSQL e rete
+# aziendale indisponibili. Le sue uniche dipendenze sono upsd su loopback e il
+# database SQLite locale.
+#
+# Installazione: deploy/scripts/install-safety-agent.sh (chiede conferma prima
+# di modificare l'host, come richiesto da §25.20).
+
+[Unit]
+Description=UPS Control Center Safety Agent
+Documentation=file:///opt/ups-control-center/docs/07-safety-agent.md
+
+# Dipendenza da NUT: l'agent legge upsd su 127.0.0.1. Il servizio non viene
+# modificato né riavviato da qui.
+After=network-online.target nut-server.service
+Wants=network-online.target
+
+# NON si dichiara After=docker.service: l'indipendenza da Docker è un vincolo
+# architetturale e l'agent deve partire anche se Docker non parte (§2.2).
+
+[Service]
+Type=notify
+NotifyAccess=main
+
+# Watchdog: se il loop di monitoraggio si blocca, systemd riavvia il servizio.
+# 60s copre ampiamente un ciclo di polling da 10s con timeout NUT da 5s.
+WatchdogSec=60
+
+User=upsagent
+Group=upsagent
+
+WorkingDirectory=/opt/ups-control-center/safety-agent
+ExecStart=/opt/ups-control-center/safety-agent/UPSControlCenter.SafetyAgent
+
+Restart=always
+RestartSec=10
+
+# Nessun limite di riavvii: un agent che smette di riprovare lascerebbe
+# l'infrastruttura senza protezione proprio dopo un problema transitorio.
+StartLimitIntervalSec=0
+
+Environment=DOTNET_ENVIRONMENT=Production
+Environment=DOTNET_EnableDiagnostics=0
+# I segreti NON stanno qui: sono in un file a permessi ristretti (0600, root:upsagent).
+EnvironmentFile=/etc/ups-control-center/safety-agent.env
+
+# ---------------------------------------------------------------- hardening
+# Minimo privilegio: l'agent non ha bisogno di quasi nulla del sistema (§8.8).
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=false
+RemoveIPC=true
+
+# Solo IPv4/IPv6 e socket Unix: nessun altro dominio è necessario.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# Nessuna capability: l'agent non spegne l'host e non manipola la rete.
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources @obsolete @mount @swap @reboot
+SystemCallArchitectures=native
+
+# Le uniche directory scrivibili: database locale e file sentinella del kill switch.
+ReadWritePaths=/var/lib/ups-control-center
+ReadOnlyPaths=/etc/ups-control-center
+
+# Log al journal in formato JSON strutturato.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ups-safety-agent
+
+# Limiti di risorse: l'agent è leggero e non deve competere con gli altri servizi.
+MemoryMax=256M
+CPUQuota=25%
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

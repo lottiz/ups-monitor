@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <PropertyGroup>
+    <UserSecretsId>ups-control-center-safety-agent</UserSecretsId>
+  </PropertyGroup>
+  <!-- VINCOLO: nessun riferimento a UPSControlCenter.Infrastructure (porterebbe Npgsql).
+       L'agent deve restare indipendente da PostgreSQL e Docker. Verificato da test. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Serilog.Extensions.Hosting" />
+    <PackageReference Include="Serilog.Settings.Configuration" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="Serilog.Formatting.Compact" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\UPSControlCenter.Core\UPSControlCenter.Core.csproj" />
+    <ProjectReference Include="..\UPSControlCenter.Nut\UPSControlCenter.Nut.csproj" />
+    <ProjectReference Include="..\UPSControlCenter.Contracts\UPSControlCenter.Contracts.csproj" />
+    <ProjectReference Include="..\UPSControlCenter.Infrastructure.Sqlite\UPSControlCenter.Infrastructure.Sqlite.csproj" />
+  </ItemGroup>
+</Project>

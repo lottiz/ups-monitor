@@ -1,0 +1,46 @@
+@model IEnumerable<object>
+@{
+    ViewData["Title"] = "Configurazioni e versioni";
+}
+
+<h1 class="h3 mb-3">Configurazioni distribuite al Safety Agent</h1>
+
+<div class="alert alert-info" role="alert">
+    La configurazione viene validata, versionata, firmata e distribuita come unità atomica.
+    Se il Safety Agent non riesce a validarla mantiene quella precedente: una configurazione
+    non valida non sostituisce mai una valida.
+</div>
+
+<div class="card mb-3">
+    <div class="card-header fw-semibold">Pubblicazione</div>
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-8">
+                <label class="form-label" for="publishReason">Motivazione</label>
+                <input class="form-control" id="publishReason"
+                       placeholder="Descrivere la modifica, per l'audit" />
+            </div>
+            <div class="col-12 col-md-4 d-flex gap-2">
+                <button class="btn btn-outline-secondary" id="previewBtn">Anteprima</button>
+                <button class="btn btn-primary" id="publishBtn">Pubblica</button>
+            </div>
+        </div>
+        <pre class="small mt-3 mb-0 d-none" id="previewOutput"></pre>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header fw-semibold">Versioni</div>
+    <div class="card-body">
+        <div id="versionsTable"></div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+<script type="application/json" id="versionsData">
+    @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model))
+</script>
+<script src="~/js/configuration.js"></script>
+}

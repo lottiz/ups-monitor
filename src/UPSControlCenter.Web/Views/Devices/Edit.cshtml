@@ -1,0 +1,183 @@
+@using Microsoft.AspNetCore.Mvc.Rendering
+@model DeviceFormViewModel
+@{
+    ViewData["Title"] = Model.Id is null ? "Nuovo dispositivo" : $"Modifica {Model.Name}";
+    var groups = ViewBag.Groups as List<SelectListItem> ?? [];
+    var profiles = ViewBag.Profiles as List<SelectListItem> ?? [];
+    var upsDevices = ViewBag.UpsDevices as List<SelectListItem> ?? [];
+}
+
+<h1 class="h3 mb-3">@ViewData["Title"]</h1>
+
+<form asp-action="Save" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+    <div class="row g-4">
+        <div class="col-12 col-lg-6">
+            <div class="card h-100">
+                <div class="card-header fw-semibold">Identificazione</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Name"></label>
+                        <input class="form-control" asp-for="Name" />
+                        <span class="text-danger small" asp-validation-for="Name"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Description"></label>
+                        <textarea class="form-control" asp-for="Description" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Hostname"></label>
+                        <input class="form-control" asp-for="Hostname" />
+                        <span class="text-danger small" asp-validation-for="Hostname"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="IpAddress"></label>
+                        <input class="form-control" asp-for="IpAddress" />
+                        <span class="text-danger small" asp-validation-for="IpAddress"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="OperatingSystem"></label>
+                        <input class="form-control" asp-for="OperatingSystem" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="DeviceType"></label>
+                        <select class="form-select" asp-for="DeviceType"
+                                asp-items="Html.GetEnumSelectList<DeviceType>()"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="DeviceGroupId"></label>
+                        <select class="form-select" asp-for="DeviceGroupId" asp-items="groups">
+                            <option value="">(nessun gruppo)</option>
+                        </select>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" asp-for="IsEnabled" />
+                        <label class="form-check-label" asp-for="IsEnabled"></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header fw-semibold">Alimentazione</div>
+                <div class="card-body">
+                    <p class="small text-body-secondary">
+                        Un dispositivo può essere alimentato da più UPS. In tal caso viene
+                        considerato privo di alimentazione solo quando <strong>tutte</strong> le
+                        sorgenti sono in blackout.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="PowerSourceUpsIds"></label>
+                        <select class="form-select" asp-for="PowerSourceUpsIds"
+                                asp-items="upsDevices" multiple size="4"></select>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label" asp-for="PrimaryUpsId"></label>
+                        <select class="form-select" asp-for="PrimaryUpsId" asp-items="upsDevices">
+                            <option value="">(nessuno)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header fw-semibold">Gestione remota</div>
+                <div class="card-body">
+                    <div class="alert alert-info py-2 small" role="alert">
+                        In modalità DRY_RUN i protocolli selezionati vengono registrati ma non
+                        utilizzati: nessun adapter reale è attivo.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="ShutdownProtocol"></label>
+                        <select class="form-select" asp-for="ShutdownProtocol"
+                                asp-items="Html.GetEnumSelectList<ShutdownProtocol>()"></select>
+                        <span class="text-danger small" asp-validation-for="ShutdownProtocol"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="StartupProtocol"></label>
+                        <select class="form-select" asp-for="StartupProtocol"
+                                asp-items="Html.GetEnumSelectList<StartupProtocol>()"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="ManagementPort"></label>
+                        <input class="form-control" asp-for="ManagementPort" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="ConnectionProfileId"></label>
+                        <select class="form-select" asp-for="ConnectionProfileId" asp-items="profiles">
+                            <option value="">(nessun profilo)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="MacAddress"></label>
+                        <input class="form-control" asp-for="MacAddress"
+                               placeholder="AA:BB:CC:DD:EE:FF" />
+                        <div class="form-text">
+                            Il supporto Wake-on-LAN non è presunto: va verificato sul dispositivo
+                            e nel BIOS.
+                        </div>
+                        <span class="text-danger small" asp-validation-for="MacAddress"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header fw-semibold">Tempi e verifica</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-3">
+                            <label class="form-label" asp-for="Priority"></label>
+                            <input class="form-control" asp-for="Priority" />
+                            <div class="form-text">Valori più bassi vengono spenti prima.</div>
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label" asp-for="ShutdownTimeoutSeconds"></label>
+                            <input class="form-control" asp-for="ShutdownTimeoutSeconds" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label" asp-for="StartupTimeoutSeconds"></label>
+                            <input class="form-control" asp-for="StartupTimeoutSeconds" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label" asp-for="PostActionDelaySeconds"></label>
+                            <input class="form-control" asp-for="PostActionDelaySeconds" />
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" asp-for="StatusCheckMethod"></label>
+                            <select class="form-select" asp-for="StatusCheckMethod"
+                                    asp-items="Html.GetEnumSelectList<StatusCheckMethod>()"></select>
+                            <div class="form-text">
+                                Un ping senza risposta non è prova di arresto: il metodo scelto
+                                determina quanto è affidabile la verifica.
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" asp-for="StatusCheckTarget"></label>
+                            <input class="form-control" asp-for="StatusCheckTarget" />
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" asp-for="Notes"></label>
+                            <textarea class="form-control" asp-for="Notes" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-primary">Salva</button>
+        <a class="btn btn-outline-secondary" asp-action="Index">Annulla</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

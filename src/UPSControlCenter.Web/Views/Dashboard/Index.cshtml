@@ -1,0 +1,160 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+@* Banner della modalità: deve essere la prima cosa visibile. Confondere DRY_RUN con LIVE è il
+   rischio operativo più grave del sistema (§15). *@
+@if (Model.Automation.AutomationDisabled)
+{
+    <div class="alert alert-danger d-flex align-items-center" role="alert">
+        <strong class="me-2">Automazioni disabilitate.</strong>
+        Il kill switch è attivo: il monitoraggio prosegue, nessuna sequenza verrà eseguita.
+    </div>
+}
+else if (Model.Automation.ExecutionMode == ExecutionMode.DryRun)
+{
+    <div class="alert alert-info d-flex align-items-center" role="alert">
+        <strong class="me-2">Modalità DRY_RUN.</strong>
+        Le regole vengono valutate e le sequenze registrate, ma nessun comando reale di
+        spegnimento o accensione viene inviato ai dispositivi.
+    </div>
+}
+else
+{
+    <div class="alert alert-warning d-flex align-items-center" role="alert">
+        <strong class="me-2">Modalità LIVE.</strong>
+        Le operazioni reali sono possibili sugli adapter abilitati:
+        @(Model.Automation.LiveEnabledAdapters.Count == 0
+            ? "nessuno"
+            : string.Join(", ", Model.Automation.LiveEnabledAdapters)).
+    </div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-12 col-lg-8">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">Stato UPS</span>
+                <small class="text-body-secondary">Aggiornamento in tempo reale</small>
+            </div>
+            <div class="card-body" id="upsCards">
+                @if (Model.UpsList.Count == 0)
+                {
+                    <p class="text-body-secondary mb-0">
+                        Nessun UPS configurato. Aggiungerne uno dalla sezione UPS.
+                    </p>
+                }
+                @foreach (var ups in Model.UpsList)
+                {
+                    <partial name="_UpsCard" model="ups" />
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-4">
+        <div class="card h-100">
+            <div class="card-header fw-semibold">Stato automazione</div>
+            <div class="card-body">
+                <dl class="row mb-0 small" id="automationPanel">
+                    <dt class="col-7">Modalità</dt>
+                    <dd class="col-5" id="autoMode">@Model.Automation.ExecutionMode</dd>
+
+                    <dt class="col-7">Orchestratore</dt>
+                    <dd class="col-5" id="autoOrchestrator">@Model.Automation.OrchestratorState</dd>
+
+                    <dt class="col-7">Ultimo heartbeat</dt>
+                    <dd class="col-5" id="autoOrchestratorHb">
+                        @(Model.Automation.OrchestratorLastHeartbeat?.ToLocalTime().ToString("HH:mm:ss")
+                          ?? "non disponibile")
+                    </dd>
+
+                    <dt class="col-7">Safety Agent</dt>
+                    <dd class="col-5" id="autoAgent">@Model.Automation.SafetyAgentState</dd>
+
+                    <dt class="col-7">Ultimo heartbeat</dt>
+                    <dd class="col-5" id="autoAgentHb">
+                        @(Model.Automation.SafetyAgentLastHeartbeat?.ToLocalTime().ToString("HH:mm:ss")
+                          ?? "non disponibile")
+                    </dd>
+
+                    <dt class="col-7">Configurazione attiva</dt>
+                    <dd class="col-5" id="autoConfig">
+                        @(Model.Automation.ActiveConfigVersion > 0
+                            ? $"v{Model.Automation.ActiveConfigVersion}"
+                            : "nessuna pubblicata")
+                    </dd>
+
+                    <dt class="col-7">Blackout in corso</dt>
+                    <dd class="col-5" id="autoBlackout">
+                        @(Model.Automation.CurrentBlackoutId is null ? "no" : "sì")
+                    </dd>
+
+                    <dt class="col-7">Durata blackout</dt>
+                    <dd class="col-5" id="autoBlackoutDuration">
+                        @(Model.Automation.BlackoutDurationSeconds is { } d
+                            ? TimeSpan.FromSeconds(d).ToString(@"hh\:mm\:ss")
+                            : "—")
+                    </dd>
+
+                    <dt class="col-7">Autonomia residua</dt>
+                    <dd class="col-5" id="autoRuntime">
+                        @(Model.Automation.RemainingRuntimeSeconds is { } r
+                            ? TimeSpan.FromSeconds(r).ToString(@"hh\:mm\:ss")
+                            : "non disponibile")
+                    </dd>
+
+                    <dt class="col-7">Prossima soglia</dt>
+                    <dd class="col-5" id="autoThreshold">
+                        @(Model.Automation.SecondsToNextThreshold is { } s
+                            ? TimeSpan.FromSeconds(s).ToString(@"hh\:mm\:ss")
+                            : "—")
+                    </dd>
+                </dl>
+
+                @if (Model.Automation.BasedOnUncertainData)
+                {
+                    <div class="alert alert-warning mt-3 mb-0 py-2 small" role="alert">
+                        La valutazione corrente si basa su dati incerti o incompleti.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header fw-semibold">Stato infrastruttura</div>
+    <div class="card-body">
+        <div class="row g-3 text-center" id="infraPanel">
+            <partial name="_InfraTile"
+                     model="@(new ValueTuple<string,int,string,string>("Totali", Model.Infrastructure.TotalDevices, "secondary", "infraTotal"))" />
+            <partial name="_InfraTile"
+                     model="@(new ValueTuple<string,int,string,string>("Accesi", Model.Infrastructure.DevicesOn, "success", "infraOn"))" />
+            <partial name="_InfraTile"
+                     model="@(new ValueTuple<string,int,string,string>("Spenti", Model.Infrastructure.DevicesOff, "dark", "infraOff"))" />
+            <partial name="_InfraTile"
+                     model="@(new ValueTuple<string,int,string,string>("In arresto", Model.Infrastructure.DevicesShuttingDown, "warning", "infraShutting"))" />
+            <partial name="_InfraTile"
+                     model="@(new ValueTuple<string,int,string,string>("In avvio", Model.Infrastructure.DevicesStarting, "info", "infraStarting"))" />
+            <partial name="_InfraTile"
+                     model="@(new ValueTuple<string,int,string,string>("Non raggiungibili", Model.Infrastructure.DevicesUnreachable, "warning", "infraUnreachable"))" />
+            <partial name="_InfraTile"
+                     model="@(new ValueTuple<string,int,string,string>("Con errori", Model.Infrastructure.DevicesWithErrors, "danger", "infraErrors"))" />
+            <partial name="_InfraTile"
+                     model="@(new ValueTuple<string,int,string,string>("Stato ignoto", Model.Infrastructure.DevicesUnknown, "secondary", "infraUnknown"))" />
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header fw-semibold">Eventi recenti</div>
+    <div class="card-body">
+        <div id="eventsTable"></div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/js/dashboard.js"></script>
+}

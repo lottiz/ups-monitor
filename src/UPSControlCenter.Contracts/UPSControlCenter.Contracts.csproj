@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\UPSControlCenter.Core\UPSControlCenter.Core.csproj" />
+  </ItemGroup>
+</Project>

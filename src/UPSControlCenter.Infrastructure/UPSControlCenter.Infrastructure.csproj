@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Data Protection e Identity fanno parte del framework condiviso ASP.NET Core: serve il
+       FrameworkReference anche per una class library. Di conseguenza i servizi che referenziano
+       questo progetto girano su immagini 'aspnet', non 'runtime' (vedi docs/06). -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="EFCore.NamingConventions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\UPSControlCenter.Core\UPSControlCenter.Core.csproj" />
+    <ProjectReference Include="..\UPSControlCenter.Nut\UPSControlCenter.Nut.csproj" />
+    <ProjectReference Include="..\UPSControlCenter.Contracts\UPSControlCenter.Contracts.csproj" />
+  </ItemGroup>
+</Project>

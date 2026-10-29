@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- SOLO SQLite: nessun riferimento a Npgsql/EF Core. Vincolo architetturale (docs/03). -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\UPSControlCenter.Core\UPSControlCenter.Core.csproj" />
+    <ProjectReference Include="..\UPSControlCenter.Contracts\UPSControlCenter.Contracts.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,295 @@
+# UPS Control Center — Docker Compose (§19)
+#
+# Vincoli rispettati:
+#  - PostgreSQL NON è pubblicato sulla rete aziendale (rete interna, nessuna porta esposta).
+#  - Nessun container privilegiato, nessun Docker socket montato.
+#  - Il portale è pubblicato solo sull'IP del mini PC, non su 0.0.0.0.
+#  - PeaNUT (porta 8085, /opt/nut-dashboard) non viene toccato: nessun conflitto di nome o porta.
+#  - Nessun secondo NUT: non esiste alcuna immagine NUT in questo file.
+
+name: ups-control-center
+
+x-common: &common
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+services:
+
+  # ------------------------------------------------------------------ database
+  ups-db:
+    <<: *common
+    image: postgres:17.6-bookworm
+    container_name: ups-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-upscc}
+      POSTGRES_USER: ${POSTGRES_USER:-upscc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD obbligatoria, vedi .env.example}
+      # Checksum sulle pagine: rileva la corruzione silenziosa, utile su hardware consumer.
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+      TZ: ${TZ:-Europe/Rome}
+    volumes:
+      - ups-db-data:/var/lib/postgresql/data
+    networks:
+      - ups-internal
+    # Nessuna sezione "ports": la 5432 non è raggiungibile fuori dalla rete interna (§19).
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-upscc} -d ${POSTGRES_DB:-upscc}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "${DB_CPU_LIMIT:-1.0}"
+          memory: ${DB_MEM_LIMIT:-1g}
+    # postgres necessita di scrivere in PGDATA e nei socket: read_only non è applicabile.
+    tmpfs:
+      - /tmp
+
+  # --------------------------------------------------------- migrazioni (job)
+  # Job dedicato, non eseguito all'avvio dell'app: più istanze che migrano in parallelo
+  # produrrebbero una race sullo schema (§6.9, R14). Si avvia con il profilo "migrate".
+  ups-migrate:
+    <<: *common
+    restart: "no"
+    profiles: ["migrate"]
+    image: ${IMAGE_REGISTRY:-local}/ups-web:${IMAGE_TAG:-0.1.0}
+    build:
+      context: .
+      dockerfile: src/UPSControlCenter.Web/Dockerfile
+    container_name: ups-migrate
+    command: ["migrate"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Postgres: "Host=ups-db;Port=5432;Database=${POSTGRES_DB:-upscc};Username=${POSTGRES_USER:-upscc};Password=${POSTGRES_PASSWORD};Include Error Detail=false"
+      SafetySync__HmacKeyBase64: ${SAFETY_CONFIG_HMAC_KEY:?SAFETY_CONFIG_HMAC_KEY obbligatoria}
+      DataProtection__KeyRingPath: /keys
+      # Credenziali del primo amministratore: da rimuovere dall'ambiente dopo la creazione.
+      Bootstrap__AdminEmail: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      Bootstrap__AdminPassword: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      TZ: ${TZ:-Europe/Rome}
+    volumes:
+      - ups-dataprotection:/keys
+    networks:
+      - ups-internal
+    depends_on:
+      ups-db:
+        condition: service_healthy
+
+  # ------------------------------------------------------------------- portale
+  ups-web:
+    <<: *common
+    image: ${IMAGE_REGISTRY:-local}/ups-web:${IMAGE_TAG:-0.1.0}
+    build:
+      context: .
+      dockerfile: src/UPSControlCenter.Web/Dockerfile
+    container_name: ups-web
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Postgres: "Host=ups-db;Port=5432;Database=${POSTGRES_DB:-upscc};Username=${POSTGRES_USER:-upscc};Password=${POSTGRES_PASSWORD};Include Error Detail=false"
+      # DRY_RUN è il valore iniziale obbligatorio. UPS_ALLOW_LIVE non è impostata: anche se il
+      # database dichiarasse LIVE, la modalità effettiva resterebbe DRY_RUN (§8.2, R18).
+      Execution__Mode: ${EXECUTION_MODE:-DryRun}
+      SafetySync__HmacKeyBase64: ${SAFETY_CONFIG_HMAC_KEY:?SAFETY_CONFIG_HMAC_KEY obbligatoria}
+      SafetyApi__AgentToken: ${SAFETY_AGENT_TOKEN:?SAFETY_AGENT_TOKEN obbligatorio}
+      DataProtection__KeyRingPath: /keys
+      KillSwitch__SentinelPath: /var/lib/ups-control-center/AUTOMATION_DISABLED
+      Nut__Host: ${NUT_HOST:-host.docker.internal}
+      Nut__Port: ${NUT_PORT:-3493}
+      Nut__UpsName: ${NUT_UPS_NAME:-riello}
+      TZ: ${TZ:-Europe/Rome}
+    volumes:
+      - ups-dataprotection:/keys
+      # Sola lettura: il portale legge il file sentinella ma il kill switch locale è scritto
+      # dallo script di emergenza sull'host, che funziona anche con Docker fermo (§8.3).
+      - ${HOST_STATE_DIR:-/var/lib/ups-control-center}:/var/lib/ups-control-center:ro
+    networks:
+      - ups-internal
+      - ups-edge
+    ports:
+      # Binding sull'IP del mini PC: non pubblica su 0.0.0.0. Vedi docs/09 §9.4 per le regole
+      # DOCKER-USER, necessarie perché Docker scavalca UFW.
+      - "${BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-8443}:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      ups-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus: "${WEB_CPU_LIMIT:-1.0}"
+          memory: ${WEB_MEM_LIMIT:-512m}
+
+  # -------------------------------------------------------------- orchestrator
+  ups-orchestrator:
+    <<: *common
+    image: ${IMAGE_REGISTRY:-local}/ups-orchestrator:${IMAGE_TAG:-0.1.0}
+    build:
+      context: .
+      dockerfile: src/UPSControlCenter.Orchestrator/Dockerfile
+    container_name: ups-orchestrator
+    environment:
+      DOTNET_ENVIRONMENT: Production
+      ConnectionStrings__Postgres: "Host=ups-db;Port=5432;Database=${POSTGRES_DB:-upscc};Username=${POSTGRES_USER:-upscc};Password=${POSTGRES_PASSWORD};Include Error Detail=false"
+      Execution__Mode: ${EXECUTION_MODE:-DryRun}
+      Orchestrator__HealthSentinelPath: /tmp/healthy
+      Orchestrator__KillSwitchPath: /var/lib/ups-control-center/AUTOMATION_DISABLED
+      # NUT gira sull'host: vedi docs/09 §9.3 per le due modalità di accesso.
+      Nut__Host: ${NUT_HOST:-host.docker.internal}
+      Nut__Port: ${NUT_PORT:-3493}
+      Nut__UpsName: ${NUT_UPS_NAME:-riello}
+      Nut__PollingIntervalSeconds: ${NUT_POLLING_SECONDS:-10}
+      TZ: ${TZ:-Europe/Rome}
+    volumes:
+      - ${HOST_STATE_DIR:-/var/lib/ups-control-center}:/var/lib/ups-control-center:ro
+    networks:
+      - ups-internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      ups-db:
+        condition: service_healthy
+    healthcheck:
+      # Non espone porte HTTP: si verifica che il loop di polling aggiorni il file sentinella
+      # negli ultimi 120 secondi.
+      test: ["CMD-SHELL", "test -f /tmp/healthy && test $(( $(date +%s) - $(stat -c %Y /tmp/healthy) )) -lt 120"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus: "${ORCHESTRATOR_CPU_LIMIT:-0.5}"
+          memory: ${ORCHESTRATOR_MEM_LIMIT:-384m}
+
+  # -------------------------------------------------------------- notifications
+  ups-notifications:
+    <<: *common
+    image: ${IMAGE_REGISTRY:-local}/ups-orchestrator:${IMAGE_TAG:-0.1.0}
+    container_name: ups-notifications
+    profiles: ["notifications"]
+    command: ["dotnet", "UPSControlCenter.Orchestrator.dll", "--mode=notifications"]
+    environment:
+      DOTNET_ENVIRONMENT: Production
+      ConnectionStrings__Postgres: "Host=ups-db;Port=5432;Database=${POSTGRES_DB:-upscc};Username=${POSTGRES_USER:-upscc};Password=${POSTGRES_PASSWORD}"
+      Smtp__IsEnabled: ${SMTP_ENABLED:-false}
+      Smtp__Host: ${SMTP_HOST:-}
+      Smtp__Port: ${SMTP_PORT:-587}
+      Smtp__Username: ${SMTP_USERNAME:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+      Smtp__FromAddress: ${SMTP_FROM:-}
+      Webhook__IsEnabled: ${WEBHOOK_ENABLED:-false}
+      Webhook__Url: ${WEBHOOK_URL:-}
+      TZ: ${TZ:-Europe/Rome}
+    networks:
+      - ups-internal
+    depends_on:
+      ups-db:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus: "${NOTIFICATIONS_CPU_LIMIT:-0.25}"
+          memory: ${NOTIFICATIONS_MEM_LIMIT:-256m}
+
+  # ----------------------------------------------------------------- simulatore
+  # Profilo separato e non attivo per default: su un mini PC a risorse limitate non deve
+  # competere con il monitoraggio (§9.1). Usa solo adapter fittizi (§14).
+  ups-simulator:
+    <<: *common
+    restart: "no"
+    image: ${IMAGE_REGISTRY:-local}/ups-orchestrator:${IMAGE_TAG:-0.1.0}
+    container_name: ups-simulator
+    profiles: ["simulation"]
+    command: ["dotnet", "UPSControlCenter.Orchestrator.dll", "--mode=simulator"]
+    environment:
+      DOTNET_ENVIRONMENT: Production
+      ConnectionStrings__Postgres: "Host=ups-db;Port=5432;Database=${POSTGRES_DB:-upscc};Username=${POSTGRES_USER:-upscc};Password=${POSTGRES_PASSWORD}"
+      # Il simulatore non può operare in LIVE per costruzione: il valore è fissato.
+      Execution__Mode: DryRun
+      TZ: ${TZ:-Europe/Rome}
+    networks:
+      - ups-internal
+    depends_on:
+      ups-db:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus: "${SIMULATOR_CPU_LIMIT:-0.5}"
+          memory: ${SIMULATOR_MEM_LIMIT:-384m}
+
+  # -------------------------------------------------------------------- backup
+  ups-db-backup:
+    <<: *common
+    image: postgres:17.6-bookworm
+    container_name: ups-db-backup
+    profiles: ["backup"]
+    environment:
+      PGHOST: ups-db
+      PGDATABASE: ${POSTGRES_DB:-upscc}
+      PGUSER: ${POSTGRES_USER:-upscc}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      TZ: ${TZ:-Europe/Rome}
+    volumes:
+      - ${BACKUP_DIR:-/var/backups/ups-control-center}:/backups
+      - ./deploy/scripts/backup-postgres.sh:/usr/local/bin/backup-postgres.sh:ro
+    networks:
+      - ups-internal
+    depends_on:
+      ups-db:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "/usr/local/bin/backup-postgres.sh", "--loop"]
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256m
+
+networks:
+  # internal: true ⇒ nessun gateway verso l'esterno. Il database non può essere raggiunto
+  # dalla rete aziendale né raggiungerla (§6.2).
+  ups-internal:
+    driver: bridge
+    internal: true
+  ups-edge:
+    driver: bridge
+
+volumes:
+  ups-db-data:
+    name: ups-db-data
+  # Perdere questo volume rende illeggibili tutte le credenziali salvate: il suo backup è
+  # un passo obbligatorio, non opzionale (§6.5, R12).
+  ups-dataprotection:
+    name: ups-dataprotection
