@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using UPSControlCenter.Core.Entities;
+using UPSControlCenter.Core.Enums;
 using UPSControlCenter.Infrastructure.Persistence;
 using UPSControlCenter.Infrastructure.Services;
 
@@ -164,6 +166,70 @@ public sealed class AdminController(
             message = $"Adapter «{request.AdapterName}» abilitato. " +
                       "La modalità globale LIVE richiede un'attivazione separata.",
             liveEnabledAdapters = current
+        });
+    }
+
+    /// <summary>Riaccensioni in attesa di approvazione manuale (§12).</summary>
+    [HttpGet("startup/pending")]
+    [Authorize(Policy = Policies.ViewDashboard)]
+    public async Task<IActionResult> GetPendingStartups(CancellationToken ct)
+    {
+        var pending = await db.OrchestrationRuns
+            .AsNoTracking()
+            .Where(r => r.RunKind == RunKind.Startup && r.State == RunState.Pending)
+            .OrderByDescending(r => r.StartedAt)
+            .Select(r => new
+            {
+                r.Id,
+                r.BlackoutId,
+                r.TriggerReason,
+                r.StartedAt,
+                r.ApprovedAt,
+                r.ApprovedBy
+            })
+            .ToListAsync(ct);
+
+        return Ok(pending);
+    }
+
+    /// <summary>
+    /// Approva una riaccensione in attesa. Il Web e l'Orchestrator sono processi distinti: qui
+    /// si registra solo l'approvazione, l'esecuzione effettiva viene rilevata e avviata
+    /// dall'Orchestrator al ciclo di polling successivo (§12).
+    /// </summary>
+    [HttpPost("startup/{runId:guid}/approve")]
+    [Authorize(Policy = Policies.UseKillSwitch)]
+    [EnableRateLimiting("sensitive")]
+    public async Task<IActionResult> ApproveStartup(Guid runId, CancellationToken ct)
+    {
+        var run = await db.OrchestrationRuns.FirstOrDefaultAsync(
+            r => r.Id == runId && r.RunKind == RunKind.Startup && r.State == RunState.Pending, ct);
+
+        if (run is null)
+            return NotFound(new { message = "Riaccensione non trovata o non più in attesa." });
+
+        var user = User.Identity?.Name ?? "sconosciuto";
+        run.ApprovedAt = DateTimeOffset.UtcNow;
+        run.ApprovedBy = user;
+
+        await audit.RecordAsync(new AuditEntry
+        {
+            Action = "Startup.Approve",
+            EntityType = nameof(OrchestrationRun),
+            EntityId = runId.ToString(),
+            UserName = user,
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            Outcome = "Success",
+            Reason = run.TriggerReason
+        }, ct);
+
+        await db.SaveChangesAsync(ct);
+
+        logger.LogWarning("Riaccensione {RunId} approvata da {User}.", runId, user);
+
+        return Ok(new
+        {
+            message = "Riaccensione approvata: l'orchestrator la avvierà al prossimo ciclo di polling."
         });
     }
 }

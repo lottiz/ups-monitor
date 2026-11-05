@@ -32,6 +32,15 @@ public class OrchestrationRun
     /// <summary>Copia della regola e dello stato UPS al momento della decisione, per l'audit.</summary>
     public string? RuleSnapshotJson { get; set; }
 
+    /// <summary>
+    /// Approvazione manuale di una riaccensione in attesa (<see cref="RunState.Pending"/>,
+    /// <see cref="RunKind.Startup"/> con <c>RequireManualApproval</c> attivo, §12). Web e
+    /// Orchestrator sono processi distinti che comunicano solo tramite il database: l'approvazione
+    /// è quindi un campo persistito, non una chiamata diretta fra i due processi.
+    /// </summary>
+    public DateTimeOffset? ApprovedAt { get; set; }
+    public string? ApprovedBy { get; set; }
+
     public ICollection<OrchestrationAction> Actions { get; set; } = [];
 }
 

@@ -1,0 +1,32 @@
+@{
+    ViewData["Title"] = "Regole di spegnimento";
+    var policyName = ViewBag.PolicyName as string;
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+        <h1 class="h3 mb-0">Regole di spegnimento</h1>
+        <div class="small text-body-secondary">
+            Policy attiva: @(policyName ?? "nessuna")
+        </div>
+    </div>
+    <a class="btn btn-primary" asp-action="Create">Nuova regola</a>
+</div>
+
+<div class="alert alert-info" role="alert">
+    La sequenza di spegnimento parte alla <strong>prima</strong> regola soddisfatta, valutate in
+    ordine di priorità crescente. Se nessuna regola personalizzata scatta, si applicano le soglie
+    di base della policy (durata blackout e autonomia residua).
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div id="rulesTable"></div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+<script src="~/js/rules.js"></script>
+}

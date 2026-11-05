@@ -26,6 +26,8 @@ public sealed class NutPollingService(
     IClock clock,
     IOptions<OrchestratorOptions> options,
     IOptions<NutClientOptions> nutOptions,
+    ShutdownExecutionCoordinator shutdownCoordinator,
+    StartupExecutionCoordinator startupCoordinator,
     ILogger<NutPollingService> logger) : BackgroundService
 {
     private readonly OrchestratorOptions _options = options.Value;
@@ -116,8 +118,11 @@ public sealed class NutPollingService(
             .Include(p => p.Rules)
             .FirstOrDefaultAsync(p => p.IsActive, ct);
 
+        var startupPolicy = await db.StartupPolicies.FirstOrDefaultAsync(p => p.IsActive, ct);
+
         var automationDisabled = File.Exists(_options.KillSwitchPath);
         var minInterval = int.MaxValue;
+        var anyOnBattery = false;
 
         foreach (var ups in upsDevices)
         {
@@ -127,6 +132,15 @@ public sealed class NutPollingService(
             var snapshot = await ReadAsync(ups, ct);
             var tracker = GetTracker(ups, policy);
             var outcome = tracker.Process(snapshot);
+
+            // Il segnale di ritorno della corrente viene inviato al coordinatore a prescindere
+            // dal fatto che una sequenza sia in corso: è innocuo se non c'è nulla da fermare, ed
+            // è l'unico modo per il caso B (§11) di sapere che la corrente è tornata senza dover
+            // interrogare di nuovo NUT da dentro l'esecuzione della sequenza.
+            if (outcome.BlackoutJustEnded && outcome.Blackout is not null)
+                shutdownCoordinator.SignalPowerRestored(outcome.Blackout.BlackoutId);
+
+            if (outcome.DebouncedStatus.IsOnBattery()) anyOnBattery = true;
 
             await PersistMeasurementAsync(db, ups, snapshot, outcome, ct);
             await PersistEventsAsync(db, ups, snapshot, outcome, ct);
@@ -151,18 +165,46 @@ public sealed class NutPollingService(
                 var decision = _evaluator.Evaluate(ctx, [.. policy.Rules]);
                 _lastDecisions[ups.Id] = decision;
 
-                if (decision.ShouldTriggerShutdown)
+                if (decision.ShouldTriggerShutdown && outcome.Blackout is not null)
                 {
-                    // Fase 1: la decisione viene registrata e resa visibile, l'esecuzione della
-                    // sequenza appartiene alla Fase 2. In DRY_RUN non cambierebbe nulla sui
-                    // dispositivi, ma registrare un'esecuzione incompleta falserebbe l'audit.
                     logger.LogWarning(
-                        "Soglia di spegnimento raggiunta per «{Ups}»: {Reason} " +
-                        "(modalità {Mode}, esecuzione sequenze prevista in Fase 2).",
+                        "Soglia di spegnimento raggiunta per «{Ups}»: {Reason} (modalità {Mode}).",
                         ups.Name, decision.Reason, policy.ExecutionMode);
+
+                    // Il coordinatore esegue in background: non si attende qui il completamento
+                    // della sequenza, altrimenti il polling di NUT si fermerebbe per tutta la
+                    // sua durata (§2.1).
+                    await shutdownCoordinator.TryStartAsync(policy, decision, outcome.Blackout,
+                        ctx, ct);
                 }
             }
+
+            // Caso C di §11: un blackout appena concluso è un candidato alla riaccensione. La
+            // valutazione richiede letture ripetute (ConsecutiveOnLineSamples), quindi va
+            // ripetuta a ogni ciclo finché la stabilità non è raggiunta o il blackout non
+            // viene sostituito da uno nuovo.
+            if (startupPolicy is not null && outcome.Blackout is { IsOpen: false })
+            {
+                await startupCoordinator.EvaluateAsync(ups, startupPolicy, outcome.Blackout,
+                    outcome.ConsecutiveOnLineSamples, snapshot, ct);
+            }
         }
+
+        // Caso D di §11: una riaccensione in corso deve interrompersi se un UPS qualunque torna
+        // su batteria, a prescindere da quale UPS l'avesse innescata (semplificazione
+        // conservativa, valida anche con un solo UPS come nell'installazione attuale).
+        startupCoordinator.AnyUpsOnBattery = anyOnBattery;
+
+        // Riaccensioni approvate manualmente dal portale (§12): Web e Orchestrator sono processi
+        // distinti che comunicano solo tramite il database, quindi l'approvazione è un campo
+        // persistito che l'orchestrator rileva al ciclo successivo, non una chiamata diretta.
+        var approvedPending = await db.OrchestrationRuns
+            .Where(r => r.RunKind == RunKind.Startup && r.State == RunState.Pending
+                     && r.ApprovedAt != null)
+            .ToListAsync(ct);
+
+        foreach (var run in approvedPending)
+            await startupCoordinator.ApproveAsync(run.Id, upsDevices[0].Id, ct);
 
         await UpdateHeartbeatAsync(db, ct);
         await db.SaveChangesAsync(ct);

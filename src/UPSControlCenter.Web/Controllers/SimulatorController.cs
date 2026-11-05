@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using UPSControlCenter.Contracts.Dto;
 using UPSControlCenter.Core.Entities;
 using UPSControlCenter.Core.Enums;
+using UPSControlCenter.Core.Sequencing;
 using UPSControlCenter.Infrastructure.Persistence;
 using UPSControlCenter.Simulator;
 
@@ -25,7 +26,6 @@ public sealed class SimulatorController(
     public IActionResult Index() => View();
 
     /// <summary>Scenari predefiniti corrispondenti ai casi di test di §21.</summary>
-    [HttpGet]
     [HttpGet]
     public IActionResult GetPresets() => Json(new[]
     {
@@ -59,8 +59,11 @@ public sealed class SimulatorController(
                 message = "Nessuna policy di spegnimento attiva: impossibile simulare."
             });
 
+        var (executableSteps, devices) = await LoadSequenceAsync(policy.DefaultSequenceId, ct);
+
         var simulator = new BlackoutSimulator();
-        var result = simulator.Run(scenario, policy, [.. policy.Rules]);
+        var result = await simulator.RunAsync(scenario, policy, [.. policy.Rules],
+            executableSteps, devices);
 
         // La simulazione viene archiviata: serve a confrontare l'esito atteso con quello reale
         // dopo un blackout e a documentare le verifiche fatte prima di passare a LIVE.
@@ -123,6 +126,42 @@ public sealed class SimulatorController(
 
         static string Escape(string? value) =>
             string.IsNullOrEmpty(value) ? "" : value.Replace(';', ',').Replace('\n', ' ');
+    }
+
+    /// <summary>
+    /// Carica la sequenza di spegnimento predefinita e risolve gruppi ed esclusioni, nello
+    /// stesso modo in cui lo farebbe l'esecuzione reale (§14): la simulazione deve vedere
+    /// esattamente gli step che vedrebbe l'Orchestrator.
+    /// </summary>
+    private async Task<(IReadOnlyList<ExecutableStep> Steps, IReadOnlyDictionary<Guid, ManagedDevice> Devices)>
+        LoadSequenceAsync(Guid? sequenceId, CancellationToken ct)
+    {
+        if (sequenceId is null) return ([], new Dictionary<Guid, ManagedDevice>());
+
+        var steps = await db.ShutdownSteps
+            .AsNoTracking()
+            .Where(s => s.ShutdownSequenceId == sequenceId)
+            .ToListAsync(ct);
+
+        var groupedDevices = await db.ManagedDevices
+            .AsNoTracking()
+            .Where(d => d.DeviceGroupId != null)
+            .Select(d => new { d.Id, d.DeviceGroupId })
+            .ToListAsync(ct);
+
+        var groupMembers = groupedDevices
+            .GroupBy(d => d.DeviceGroupId!.Value)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<Guid>)g.Select(d => d.Id).ToList());
+
+        var executable = SequenceStepResolver.Resolve(steps, groupMembers);
+
+        var deviceIds = executable.SelectMany(s => s.TargetDeviceIds).Distinct().ToList();
+        var devices = await db.ManagedDevices
+            .AsNoTracking()
+            .Where(d => deviceIds.Contains(d.Id))
+            .ToDictionaryAsync(d => d.Id, ct);
+
+        return (executable, devices);
     }
 }
 

@@ -9,7 +9,7 @@ using Serilog.Formatting.Compact;
 using UPSControlCenter.Core.Abstractions;
 using UPSControlCenter.Core.Enums;
 using UPSControlCenter.Core.Safety;
-using UPSControlCenter.Infrastructure.Adapters;
+using UPSControlCenter.Adapters;
 using UPSControlCenter.Infrastructure.Options;
 using UPSControlCenter.Infrastructure.Persistence;
 using UPSControlCenter.Infrastructure.Security;
@@ -37,13 +37,22 @@ var connectionString = builder.Configuration.GetConnectionString("Postgres")
         "Stringa di connessione «Postgres» non configurata. " +
         "Impostare ConnectionStrings__Postgres nell'ambiente.");
 
-builder.Services.AddDbContext<UpsDbContext>(options => options
+void ConfigureDbContext(DbContextOptionsBuilder options) => options
     .UseNpgsql(connectionString, npg => npg
         .MigrationsHistoryTable("__ef_migrations_history", UpsDbContext.Schema)
         .EnableRetryOnFailure(3, TimeSpan.FromSeconds(5), null))
     // Deve coincidere con la convenzione usata per generare le migrazioni, altrimenti il
     // modello non corrisponderebbe allo schema.
-    .UseSnakeCaseNamingConvention());
+    .UseSnakeCaseNamingConvention();
+
+// Un solo punto di registrazione delle opzioni: AddDbContextFactory le registra come
+// singleton. Registrare anche AddDbContext in aggiunta provocherebbe un conflitto di lifetime
+// (DbContextOptions scoped vs singleton) rilevato solo all'avvio dell'applicazione, non in
+// compilazione. UpsDbContext "diretto" (per Identity, i controller, ecc.) viene quindi creato
+// a partire dalla factory, con lifetime scoped esplicito.
+builder.Services.AddDbContextFactory<UpsDbContext>(ConfigureDbContext);
+builder.Services.AddScoped<UpsDbContext>(sp =>
+    sp.GetRequiredService<IDbContextFactory<UpsDbContext>>().CreateDbContext());
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -181,7 +190,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
     options.KnownProxies.Clear();
-    options.KnownNetworks.Clear();
+    options.KnownIPNetworks.Clear();
 
     foreach (var proxy in builder.Configuration.GetSection("KnownProxies").Get<string[]>() ?? [])
     {

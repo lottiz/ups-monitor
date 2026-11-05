@@ -31,11 +31,25 @@
                 <li class="nav-item">
                     <a class="nav-link" asp-controller="Devices" asp-action="Index">Dispositivi</a>
                 </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        Regole e sequenze
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" asp-controller="Rules" asp-action="Index">Regole di spegnimento</a></li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li><a class="dropdown-item" asp-controller="Sequences" asp-action="Index" asp-route-kind="Shutdown">Sequenze di spegnimento</a></li>
+                        <li><a class="dropdown-item" asp-controller="Sequences" asp-action="Index" asp-route-kind="Startup">Sequenze di riaccensione</a></li>
+                    </ul>
+                </li>
                 <li class="nav-item">
                     <a class="nav-link" asp-controller="Simulator" asp-action="Index">Simulatore</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" asp-controller="Configuration" asp-action="Index">Configurazioni</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Audit" asp-action="Index">Audit</a>
                 </li>
             </ul>
 

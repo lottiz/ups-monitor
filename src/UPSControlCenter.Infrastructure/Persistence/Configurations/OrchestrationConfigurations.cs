@@ -14,6 +14,7 @@ public sealed class OrchestrationRunConfiguration : IEntityTypeConfiguration<Orc
         b.Property(x => x.BlackoutId).HasMaxLength(128);
         b.Property(x => x.TriggerReason).HasMaxLength(1024).IsRequired();
         b.Property(x => x.RuleSnapshotJson).HasColumnType("jsonb");
+        b.Property(x => x.ApprovedBy).HasMaxLength(256);
 
         // Nessuna seconda sequenza attiva per lo stesso blackout: il vincolo è nel database, così
         // Orchestrator e Safety Agent non possono duplicare l'esecuzione nemmeno in caso di

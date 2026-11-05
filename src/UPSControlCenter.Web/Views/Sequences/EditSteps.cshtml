@@ -1,0 +1,140 @@
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using UPSControlCenter.Core.Enums
+@{
+    var kind = (SequenceKind)ViewBag.Kind;
+    var sequenceId = (Guid)ViewBag.SequenceId;
+    var sequenceName = (string)ViewBag.SequenceName;
+    ViewData["Title"] = $"Step di {sequenceName}";
+    var devices = ViewBag.Devices as List<SelectListItem> ?? [];
+    var groups = ViewBag.Groups as List<SelectListItem> ?? [];
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+        <h1 class="h3 mb-0">Step: @sequenceName</h1>
+        <div class="small text-body-secondary">
+            @(kind == SequenceKind.Shutdown ? "Sequenza di spegnimento" : "Sequenza di riaccensione")
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary" id="validateDeps">Verifica dipendenze</button>
+        <button class="btn btn-primary" id="addStep">Nuovo step</button>
+    </div>
+</div>
+
+<div id="validationResult" class="d-none mb-3"></div>
+
+<div class="card">
+    <div class="card-body">
+        <div id="stepsTable"></div>
+    </div>
+</div>
+
+<!-- Modale di modifica step -->
+<div class="modal fade" id="stepModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Step</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            </div>
+            <div class="modal-body">
+                <form id="stepForm">
+                    <input type="hidden" id="stepId" />
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Nome</label>
+                            <input class="form-control" id="stepName" required />
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Tipo</label>
+                            <select class="form-select" id="stepType">
+                                @foreach (var t in Enum.GetValues<SequenceStepType>())
+                                {
+                                    <option value="@((int)t)">@t</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label">Ordine</label>
+                            <input class="form-control" type="number" id="stepOrder" required />
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label">Gruppo parallelo</label>
+                            <input class="form-control" type="number" id="stepParallelGroup"
+                                   placeholder="(nessuno)" />
+                            <div class="form-text">Step con lo stesso valore partono insieme.</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="stepEnabled" checked />
+                                <label class="form-check-label">Abilitato</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Dispositivo bersaglio</label>
+                            <select class="form-select" id="stepTargetDevice">
+                                <option value="">(nessuno)</option>
+                                @foreach (var d in devices)
+                                {
+                                    <option value="@d.Value">@d.Text</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Gruppo bersaglio</label>
+                            <select class="form-select" id="stepTargetGroup">
+                                <option value="">(nessuno)</option>
+                                @foreach (var g in groups)
+                                {
+                                    <option value="@g.Value">@g.Text</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">Ritardo prima (s)</label>
+                            <input class="form-control" type="number" id="stepDelay" value="0" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">Timeout (s)</label>
+                            <input class="form-control" type="number" id="stepTimeout" value="300" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">Tentativi massimi</label>
+                            <input class="form-control" type="number" id="stepMaxRetries" value="0" min="0" max="5" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="stepContinueOnError" />
+                                <label class="form-check-label">Continua se fallisce</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="stepVerifyCompletion" checked />
+                                <label class="form-check-label">
+                                    Verifica completamento (un ping senza risposta non è prova di arresto, §10)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="saveStepBtn">Salva</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+<script>
+    window.__sequenceKind = '@kind';
+    window.__sequenceId = '@sequenceId';
+</script>
+
+@section Scripts {
+<script src="~/js/sequence-steps.js"></script>
+}

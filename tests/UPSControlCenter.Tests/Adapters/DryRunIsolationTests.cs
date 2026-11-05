@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using UPSControlCenter.Core.Abstractions;
 using UPSControlCenter.Core.Enums;
-using UPSControlCenter.Infrastructure.Adapters;
+using UPSControlCenter.Adapters;
 
 namespace UPSControlCenter.Tests.Adapters;
 

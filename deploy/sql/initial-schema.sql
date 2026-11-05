@@ -1059,3 +1059,28 @@ BEGIN
 END $EF$;
 COMMIT;
 
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM ups.__ef_migrations_history WHERE "migration_id" = '20261104210650_AddStartupApproval') THEN
+    ALTER TABLE ups.orchestration_runs ADD approved_at timestamp with time zone;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM ups.__ef_migrations_history WHERE "migration_id" = '20261104210650_AddStartupApproval') THEN
+    ALTER TABLE ups.orchestration_runs ADD approved_by character varying(256);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM ups.__ef_migrations_history WHERE "migration_id" = '20261104210650_AddStartupApproval') THEN
+    INSERT INTO ups.__ef_migrations_history (migration_id, product_version)
+    VALUES ('20261104210650_AddStartupApproval', '10.0.14');
+    END IF;
+END $EF$;
+COMMIT;
+

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -9,6 +10,7 @@ using UPSControlCenter.Core.Enums;
 using UPSControlCenter.Core.Nut;
 using UPSControlCenter.Core.Rules;
 using UPSControlCenter.Core.Safety;
+using UPSControlCenter.Core.Sequencing;
 using UPSControlCenter.Infrastructure.Sqlite;
 
 namespace UPSControlCenter.SafetyAgent;
@@ -38,6 +40,7 @@ public sealed class SafetyAgentWorker(
     INutClient nutClient,
     IClock clock,
     ConfigurationSynchronizer synchronizer,
+    SequenceExecutor executor,
     IHttpClientFactory httpClientFactory,
     IOptions<SafetyAgentOptions> options,
     ILogger<SafetyAgentWorker> logger) : BackgroundService
@@ -54,6 +57,7 @@ public sealed class SafetyAgentWorker(
     private DateTimeOffset _lastConfigPull = DateTimeOffset.MinValue;
     private long _fencingToken;
     private string? _activeRunId;
+    private readonly ConcurrentDictionary<string, byte> _powerRestoredSignal = new();
 
     public AgentState State => _state;
     public SafetyConfiguration? ActiveConfiguration => _config;
@@ -214,6 +218,9 @@ public sealed class SafetyAgentWorker(
         var snapshot = await ReadUpsAsync(ct);
         var outcome = _tracker!.Process(snapshot);
 
+        if (outcome.BlackoutJustEnded && outcome.Blackout is not null)
+            _powerRestoredSignal[outcome.Blackout.BlackoutId] = 0;
+
         if (snapshot.IsUsableForDecisions) _lastGoodSnapshot = snapshot;
 
         // 4. Persistenza dello stato del blackout, così un crash non perde il riferimento temporale.
@@ -368,60 +375,94 @@ public sealed class SafetyAgentWorker(
             "Motivo: {Reason}",
             _config.ExecutionMode, blackout.BlackoutId, decision.Reason);
 
-        await ExecuteStepsAsync(runId, ct);
+        // L'esecuzione gira in un task indipendente: una sequenza può durare minuti e il ciclo
+        // di monitoraggio non deve fermarsi durante l'unico momento in cui conta di più. Lo
+        // stesso principio applicato all'Orchestrator (ShutdownExecutionCoordinator) vale qui,
+        // a maggior ragione: l'agent è la rete di sicurezza di ultima istanza (§13).
+        _ = Task.Run(() => ExecuteStepsAsync(runId, blackout.BlackoutId, ctx, ct), CancellationToken.None);
+    }
+
+    /// <summary>Esegue la sequenza con il motore condiviso da Orchestrator e Simulatore (§2.1, §13).</summary>
+    private async Task ExecuteStepsAsync(string runId, string blackoutId, EvaluationContext ctx,
+        CancellationToken ct)
+    {
+        try
+        {
+            var runStore = new SqliteSequenceRunStore(store, clock);
+            var executable = _config!.ShutdownSteps
+                .OrderBy(s => s.OrderIndex)
+                .Select(SafetyExecutionMapper.ToExecutableStep)
+                .ToList();
+            var devices = _config.Devices.ToDictionary(d => d.Id, SafetyExecutionMapper.ToManagedDevice);
+
+            var result = await executor.ExecuteAsync(
+                runId,
+                SequenceDirection.Shutdown,
+                executable,
+                devices,
+                runStore,
+                evaluateCondition: node => ConditionEvaluator.Evaluate(node, ctx),
+                shouldStopAtBoundary: () => ShouldStopAtBoundary(blackoutId),
+                diagnostics: (severity, message) => LogDiagnostic(severity, message),
+                ct: ct);
+
+            store.CompleteSequenceRun(runId, result.FinalState, clock.UtcNow);
+
+            store.RecordCriticalEvent(
+                result.FinalState == RunState.Completed
+                    ? UpsEventType.SequenceCompleted : UpsEventType.SequenceFailed,
+                result.FinalState == RunState.Completed
+                    ? EventSeverity.Information : EventSeverity.Critical,
+                blackoutId,
+                $"Sequenza {runId} terminata con stato {result.FinalState} " +
+                $"({result.Actions.Count} azioni, {result.Actions.Count(a => a.State is ActionState.Failed or ActionState.TimedOut)} fallite).",
+                clock.UtcNow);
+
+            logger.LogWarning(
+                "Sequenza {RunId} terminata con stato {State}: {Count} azioni registrate in " +
+                "modalità {Mode}.", runId, result.FinalState, result.Actions.Count,
+                _config.ExecutionMode);
+        }
+        catch (Exception ex)
+        {
+            // Un'eccezione nell'esecuzione non deve far morire il worker: lo stato del run
+            // resta "Running" indefinitamente altrimenti, ma il ciclo di monitoraggio deve
+            // proseguire comunque.
+            logger.LogError(ex, "Esecuzione della sequenza {RunId} terminata con un'eccezione non gestita.", runId);
+            store.CompleteSequenceRun(runId, RunState.Failed, clock.UtcNow);
+        }
+        finally
+        {
+            _activeRunId = null;
+            _powerRestoredSignal.TryRemove(blackoutId, out _);
+        }
     }
 
     /// <summary>
-    /// Esegue gli step. In Fase 1 ogni azione è registrata come simulata: l'esecutore completo
-    /// con adapter, dipendenze e verifiche appartiene alle Fasi 2-3. La registrazione idempotente
-    /// e il percorso di coordinamento sono però già quelli definitivi.
+    /// Il kill switch ha sempre la precedenza; il ritorno della corrente interrompe solo se la
+    /// policy lo prevede esplicitamente (§11, caso B).
     /// </summary>
-    private async Task ExecuteStepsAsync(string runId, CancellationToken ct)
+    private bool ShouldStopAtBoundary(string blackoutId)
     {
-        var steps = _config!.ShutdownSteps.OrderBy(s => s.OrderIndex).ToList();
-
-        foreach (var step in steps)
+        if (IsAutomationDisabled())
         {
-            ct.ThrowIfCancellationRequested();
-
-            if (step.DelayBeforeSeconds > 0)
-                await Task.Delay(TimeSpan.FromSeconds(step.DelayBeforeSeconds), ct);
-
-            IReadOnlyList<Guid?> targets = step.TargetDeviceIds.Count > 0
-                ? [.. step.TargetDeviceIds.Cast<Guid?>()]
-                : [step.TargetDeviceId];
-
-            foreach (var deviceId in targets)
-            {
-                var opId = $"{runId}:{step.Id}:{deviceId?.ToString() ?? "-"}:1";
-
-                // In DRY_RUN non viene invocato nessun adapter reale: non ne esistono di
-                // registrati e l'esito è una registrazione, non un comando (§8.1).
-                var recorded = store.TryRecordOperation(opId, runId, step.Id.ToString(),
-                    deviceId?.ToString(), attempt: 1, step.StepType.ToString(),
-                    ActionState.Succeeded, clock.UtcNow, clock.UtcNow,
-                    _config.IsDryRun ? "DRY_RUN" : "EXECUTED",
-                    _config.IsDryRun
-                        ? $"[DRY_RUN] Step «{step.Name}» registrato senza invio di comandi."
-                        : $"Step «{step.Name}» eseguito.",
-                    wasDryRun: _config.IsDryRun);
-
-                if (!recorded)
-                    logger.LogInformation(
-                        "Step «{Step}» già eseguito per questo blackout: salto idempotente.",
-                        step.Name);
-            }
+            logger.LogWarning("Kill switch attivo: sequenza interrotta al prossimo confine.");
+            return true;
         }
 
-        store.CompleteSequenceRun(runId, RunState.Completed, clock.UtcNow);
-        _activeRunId = null;
-        _state = AgentState.PostShutdown;
+        return _config?.Thresholds.PowerRestoredDuringShutdownPolicy
+                   == PowerRestoredDuringShutdownPolicy.StopAtNextStepBoundary
+               && _powerRestoredSignal.ContainsKey(blackoutId);
+    }
 
-        store.RecordCriticalEvent(UpsEventType.SequenceCompleted, EventSeverity.Information,
-            null, $"Sequenza {runId} completata ({steps.Count} step).", clock.UtcNow);
-
-        logger.LogWarning("Sequenza {RunId} completata: {Count} step registrati in modalità {Mode}.",
-            runId, steps.Count, _config.ExecutionMode);
+    private void LogDiagnostic(EventSeverity severity, string message)
+    {
+        switch (severity)
+        {
+            case EventSeverity.Critical: logger.LogError(message); break;
+            case EventSeverity.Warning: logger.LogWarning(message); break;
+            default: logger.LogInformation(message); break;
+        }
     }
 
     private bool IsAutomationDisabled()
@@ -499,6 +540,7 @@ public sealed class SafetyAgentWorker(
             UncertainDurationPolicy = config.Thresholds.UncertainDurationPolicy,
             CommunicationLostPolicy = config.Thresholds.CommunicationLostPolicy,
             CommunicationLostGraceSeconds = config.Thresholds.CommunicationLostGraceSeconds,
+            PowerRestoredDuringShutdownPolicy = config.Thresholds.PowerRestoredDuringShutdownPolicy,
             TakeoverGraceSeconds = config.TakeoverGraceSeconds
         };
     }

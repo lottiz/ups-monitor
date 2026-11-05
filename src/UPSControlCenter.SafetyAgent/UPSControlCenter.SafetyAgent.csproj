@@ -19,5 +19,6 @@
     <ProjectReference Include="..\UPSControlCenter.Nut\UPSControlCenter.Nut.csproj" />
     <ProjectReference Include="..\UPSControlCenter.Contracts\UPSControlCenter.Contracts.csproj" />
     <ProjectReference Include="..\UPSControlCenter.Infrastructure.Sqlite\UPSControlCenter.Infrastructure.Sqlite.csproj" />
+    <ProjectReference Include="..\UPSControlCenter.Adapters\UPSControlCenter.Adapters.csproj" />
   </ItemGroup>
 </Project>

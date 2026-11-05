@@ -1,8 +1,10 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Serilog;
 using Serilog.Formatting.Compact;
+using UPSControlCenter.Adapters;
 using UPSControlCenter.Core.Abstractions;
 using UPSControlCenter.Core.Safety;
+using UPSControlCenter.Core.Sequencing;
 using UPSControlCenter.Infrastructure.Sqlite;
 using UPSControlCenter.Nut;
 using UPSControlCenter.SafetyAgent;
@@ -43,6 +45,13 @@ builder.Services.AddSingleton(sp =>
 });
 
 builder.Services.AddSingleton<ConfigurationSynchronizer>();
+
+// L'agent esegue le sequenze con lo stesso motore dell'Orchestrator. Non registra
+// AddDeviceAdapters perché non esiste modalità LIVE qui: il Safety Agent non ha un percorso di
+// configurazione per abilitare adapter reali, quindi usa sempre e solo il simulato (§8.1, §13).
+builder.Services.AddDeviceAdapters(new ExecutionModeOptions { Mode = UPSControlCenter.Core.Enums.ExecutionMode.DryRun });
+builder.Services.AddSingleton<SequenceExecutor>();
+
 builder.Services.AddHostedService<SafetyAgentWorker>();
 
 var host = builder.Build();

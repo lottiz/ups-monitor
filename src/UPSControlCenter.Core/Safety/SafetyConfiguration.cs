@@ -51,6 +51,10 @@ public sealed record SafetyThresholds
     public UncertainDurationPolicy UncertainDurationPolicy { get; init; } = UncertainDurationPolicy.TreatAsImmediateThreshold;
     public CommunicationLostPolicy CommunicationLostPolicy { get; init; } = CommunicationLostPolicy.HoldAndAlert;
     public int CommunicationLostGraceSeconds { get; init; } = 120;
+
+    /// <summary>Comportamento se la corrente torna mentre una sequenza è in corso (§11, caso B).</summary>
+    public PowerRestoredDuringShutdownPolicy PowerRestoredDuringShutdownPolicy { get; init; } =
+        PowerRestoredDuringShutdownPolicy.CompleteThenRestart;
 }
 
 public sealed record SafetyDevice

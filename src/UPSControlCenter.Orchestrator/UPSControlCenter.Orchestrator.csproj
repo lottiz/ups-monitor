@@ -15,5 +15,6 @@
     <ProjectReference Include="..\UPSControlCenter.Contracts\UPSControlCenter.Contracts.csproj" />
     <ProjectReference Include="..\UPSControlCenter.Infrastructure\UPSControlCenter.Infrastructure.csproj" />
     <ProjectReference Include="..\UPSControlCenter.Notifications\UPSControlCenter.Notifications.csproj" />
+    <ProjectReference Include="..\UPSControlCenter.Adapters\UPSControlCenter.Adapters.csproj" />
   </ItemGroup>
 </Project>

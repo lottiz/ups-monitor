@@ -67,8 +67,19 @@ dotnet test tests/UPSControlCenter.Tests
 
 ### Verifica di avvio reale
 
-Build e test non intercettano tutto: un conflitto di routing MVC si manifesta solo
-all'avvio. Dopo modifiche a controller o DI, avviare davvero l'applicazione.
+Build e test non intercettano tutto. Due esempi reali trovati solo avviando l'app pubblicata
+(Fase 1 e Fase 2, vedi `MEMORY.md` e `docs/13-fase2.md`):
+
+- un conflitto di routing MVC (attributo di rotta su un'action di un controller a routing
+  convenzionale) — l'app non partiva;
+- due `AddDbContext`/`AddDbContextFactory` per lo stesso `DbContext` — `AggregateException`
+  sulla composizione DI all'avvio;
+- una proprietà `IReadOnlyList<T>` su un DTO di form MVC — il salvataggio falliva in silenzio
+  perché il model binder non riesce a popolare collezioni non concrete per campi indicizzati
+  (`Lista[0].Campo`); nessun errore, solo un form che "non salva".
+
+Dopo modifiche a controller, DI o DTO di form con collezioni, avviare davvero l'applicazione
+**e** compiere l'azione (non solo verificare che la pagina risponda 200):
 
 ```bash
 dotnet publish src/UPSControlCenter.Web -c Release -o /tmp/pub-web
@@ -80,6 +91,15 @@ SafetyApi__AgentToken=test DataProtection__KeyRingPath=/tmp/keys-test \
 ASPNETCORE_URLS=http://127.0.0.1:5199 \
   "$HOME/.dotnet/dotnet" UPSControlCenter.Web.dll
 ```
+
+Per verificare un form che scrive dati, autenticarsi davvero (login via curl con il cookie jar
+e il token antiforgery estratto dalla pagina) e ispezionare la risposta, non solo il codice
+HTTP: un 200 su un form che fallisce la validazione è indistinguibile da un 200 di successo
+senza guardare il corpo della risposta.
+
+Un DTO di form con una proprietà di collezione deve usare `List<T>` (o array), non
+`IReadOnlyList<T>`/`IEnumerable<T>`: il test `ModelBindingSafetyTests` lo verifica per
+riflessione su ogni nuovo DTO di form aggiunto.
 
 Atteso: `/health/live` → 200, `/` → 302, `/api/dashboard/automation` → 401.
 

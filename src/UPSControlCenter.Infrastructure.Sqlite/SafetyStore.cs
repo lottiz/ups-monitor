@@ -352,6 +352,67 @@ public sealed class SafetyStore : IDisposable
         }
     }
 
+    /// <summary>
+    /// Prenota un tentativo prima di eseguirlo, inserendo una riga in stato <c>Running</c>.
+    /// Restituisce <c>false</c> se la chiave logica esiste già: è il meccanismo a due fasi usato
+    /// da <see cref="UPSControlCenter.Core.Sequencing.SequenceExecutor"/> per garantire
+    /// l'idempotenza anche se l'azione richiede tempo (§13, R2).
+    /// </summary>
+    public bool TryClaimOperation(string runId, string stepId, string? deviceId, int attempt,
+        string actionType, DateTimeOffset startedAt)
+    {
+        try
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = """
+                INSERT INTO operations
+                    (op_id, run_id, step_id, device_id, attempt, action_type, state, started_at, was_dry_run)
+                VALUES ($op, $run, $step, $dev, $att, $type, 'Running', $start, 0)
+                """;
+            cmd.Parameters.AddWithValue("$op", Guid.CreateVersion7().ToString());
+            cmd.Parameters.AddWithValue("$run", runId);
+            cmd.Parameters.AddWithValue("$step", stepId);
+            cmd.Parameters.AddWithValue("$dev", deviceId ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("$att", attempt);
+            cmd.Parameters.AddWithValue("$type", actionType);
+            cmd.Parameters.AddWithValue("$start", Iso(startedAt));
+            cmd.ExecuteNonQuery();
+            return true;
+        }
+        catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
+        {
+            _logger.LogInformation(
+                "Azione già prenotata (run {Run}, step {Step}, dispositivo {Device}, " +
+                "tentativo {Attempt}): claim respinto.", runId, stepId, deviceId ?? "-", attempt);
+            return false;
+        }
+    }
+
+    /// <summary>Aggiorna l'esito di un'azione precedentemente prenotata con <see cref="TryClaimOperation"/>.</summary>
+    public void UpdateOperationResult(string runId, string stepId, string? deviceId, int attempt,
+        ActionState state, string? resultCode, string? message, bool wasDryRun,
+        DateTimeOffset finishedAt)
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = """
+            UPDATE operations
+            SET state = $state, finished_at = $fin, result_code = $code, message = $msg,
+                was_dry_run = $dry
+            WHERE run_id = $run AND step_id = $step
+              AND IFNULL(device_id,'') = IFNULL($dev,'') AND attempt = $att
+            """;
+        cmd.Parameters.AddWithValue("$state", state.ToString());
+        cmd.Parameters.AddWithValue("$fin", Iso(finishedAt));
+        cmd.Parameters.AddWithValue("$code", resultCode ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("$msg", message ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("$dry", wasDryRun ? 1 : 0);
+        cmd.Parameters.AddWithValue("$run", runId);
+        cmd.Parameters.AddWithValue("$step", stepId);
+        cmd.Parameters.AddWithValue("$dev", deviceId ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("$att", attempt);
+        cmd.ExecuteNonQuery();
+    }
+
     public bool IsOperationCompleted(string runId, string stepId, string? deviceId)
     {
         using var cmd = _connection.CreateCommand();

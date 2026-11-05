@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Adapter DRY_RUN-safe e selettore, condivisi da Web/Orchestrator (via Infrastructure) e
+       dal Safety Agent direttamente. NON deve mai dipendere da Npgsql/EF Core: è esattamente
+       il confine che garantisce l'isolamento DRY_RUN anche per il Safety Agent (docs/03). -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\UPSControlCenter.Core\UPSControlCenter.Core.csproj" />
+  </ItemGroup>
+</Project>

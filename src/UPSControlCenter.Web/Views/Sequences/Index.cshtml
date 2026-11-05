@@ -1,0 +1,43 @@
+@model object
+@{
+    var kind = (SequenceKind)ViewBag.Kind;
+    var title = kind == SequenceKind.Shutdown ? "Sequenze di spegnimento" : "Sequenze di riaccensione";
+    ViewData["Title"] = title;
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h1 class="h3 mb-0">@title</h1>
+    <a class="btn btn-primary" asp-action="Create" asp-route-kind="@kind">Nuova sequenza</a>
+</div>
+
+<div class="alert alert-info" role="alert">
+    @if (kind == SequenceKind.Shutdown)
+    {
+        <text>
+            L'ordine degli step determina l'ordine di spegnimento. Usare "Verifica dipendenze"
+            per controllare che l'ordine configurato non violi le dipendenze dichiarate fra
+            dispositivi (storage, database) prima di pubblicare la configurazione.
+        </text>
+    }
+    else
+    {
+        <text>
+            L'ordine di accensione dovrebbe essere l'inverso di quello di spegnimento: prima lo
+            storage, poi chi lo usa.
+        </text>
+    }
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div id="sequencesTable"></div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+<script>window.__sequenceKind = '@kind';</script>
+
+@section Scripts {
+<script src="~/js/sequences.js"></script>
+}

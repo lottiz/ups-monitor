@@ -147,14 +147,15 @@ public sealed class NutProtocolIntegrationTests
         "VAR riello ups.model \"DS3MK10CS100RUA\""
     ];
 
-    private static NutTcpClient CreateClient(int port, string? username = null)
+    private static NutTcpClient CreateClient(int port, string? username = null,
+        int timeoutSeconds = 5)
     {
         var options = Options.Create(new NutClientOptions
         {
             Host = "127.0.0.1",
             Port = port,
             UpsName = "riello",
-            TimeoutSeconds = 5,
+            TimeoutSeconds = timeoutSeconds,
             Username = username
         });
 
@@ -306,8 +307,19 @@ public sealed class NutProtocolIntegrationTests
             Assert.True(snapshot.CommunicationOk, $"Lettura {i + 1} non riuscita.");
         }
 
-        List<string> commands;
-        lock (server.ReceivedCommands) { commands = [.. server.ReceivedCommands]; }
+        // Il client chiude il socket subito dopo aver scritto LOGOUT, senza attendere la
+        // risposta: l'elaborazione lato server (che registra il comando) è quindi asincrona
+        // rispetto al ritorno di ReadAsync. Si attende con un breve timeout invece di assumere
+        // che sia già avvenuta, altrimenti il test diventa intermittente sotto carico (il
+        // fallimento osservato non indicava una sessione persa, ma un'asserzione anticipata).
+        List<string> commands = [];
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (DateTime.UtcNow < deadline)
+        {
+            lock (server.ReceivedCommands) { commands = [.. server.ReceivedCommands]; }
+            if (commands.Count(c => c.StartsWith("LOGOUT", StringComparison.Ordinal)) >= 10) break;
+            await Task.Delay(20);
+        }
 
         // Ogni sessione chiude con LOGOUT: nessuna sessione lasciata aperta.
         Assert.Equal(10, commands.Count(c => c.StartsWith("LOGOUT", StringComparison.Ordinal)));

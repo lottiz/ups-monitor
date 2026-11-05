@@ -2,8 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Formatting.Compact;
 using UPSControlCenter.Core.Abstractions;
-using UPSControlCenter.Infrastructure.Adapters;
+using UPSControlCenter.Core.Sequencing;
+using UPSControlCenter.Adapters;
 using UPSControlCenter.Infrastructure.Persistence;
+using UPSControlCenter.Infrastructure.Services;
 using UPSControlCenter.Nut;
 using UPSControlCenter.Orchestrator;
 
@@ -28,12 +30,21 @@ var connectionString = builder.Configuration.GetConnectionString("Postgres")
         "Stringa di connessione «Postgres» non configurata. " +
         "Impostare ConnectionStrings__Postgres nell'ambiente.");
 
-builder.Services.AddDbContext<UpsDbContext>(o => o
+void ConfigureDbContext(DbContextOptionsBuilder o) => o
     .UseNpgsql(connectionString, npg => npg
         .MigrationsHistoryTable("__ef_migrations_history", UpsDbContext.Schema)
         // Resilienza alle disconnessioni: il database è in un container che può riavviarsi.
         .EnableRetryOnFailure(3, TimeSpan.FromSeconds(5), null))
-    .UseSnakeCaseNamingConvention());
+    .UseSnakeCaseNamingConvention();
+
+// Un solo punto di registrazione delle opzioni: AddDbContextFactory le registra come
+// singleton. Registrare anche AddDbContext in aggiunta provocherebbe un conflitto di lifetime
+// (DbContextOptions scoped vs singleton) rilevato solo all'avvio dell'applicazione, non in
+// compilazione. UpsDbContext "diretto" (per Identity, i controller, ecc.) viene quindi creato
+// a partire dalla factory, con lifetime scoped esplicito.
+builder.Services.AddDbContextFactory<UpsDbContext>(ConfigureDbContext);
+builder.Services.AddScoped<UpsDbContext>(sp =>
+    sp.GetRequiredService<IDbContextFactory<UpsDbContext>>().CreateDbContext());
 
 builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddSingleton<INutClient, NutTcpClient>();
@@ -50,6 +61,13 @@ var executionOptions = new ExecutionModeOptions
                            || Environment.GetEnvironmentVariable("UPS_ALLOW_LIVE") == "1"
 };
 builder.Services.AddDeviceAdapters(executionOptions);
+
+// Esecuzione delle sequenze: stesso motore condiviso con Safety Agent e Simulatore (§2.1).
+builder.Services.AddSingleton<SequenceExecutor>();
+builder.Services.AddScoped<ISequenceRunStore, PostgresSequenceRunStore>();
+builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddSingleton<ShutdownExecutionCoordinator>();
+builder.Services.AddSingleton<StartupExecutionCoordinator>();
 
 builder.Services.AddHostedService<NutPollingService>();
 builder.Services.AddHostedService<MaintenanceService>();

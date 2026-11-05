@@ -1,0 +1,19 @@
+@{
+    ViewData["Title"] = "Audit";
+}
+
+<h1 class="h3 mb-3">Registro di audit</h1>
+
+<div class="alert alert-info" role="alert">
+    Registro append-only: nessun ruolo può modificare o eliminare queste voci dall'interfaccia (§4.4).
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div id="auditTable"></div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/js/audit.js"></script>
+}

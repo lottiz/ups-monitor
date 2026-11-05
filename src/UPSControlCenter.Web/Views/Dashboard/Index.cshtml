@@ -148,12 +148,25 @@ else
     </div>
 </div>
 
+<div class="card mb-4 d-none" id="pendingStartupsCard">
+    <div class="card-header fw-semibold">Riaccensioni in attesa di approvazione</div>
+    <div class="card-body">
+        <p class="small text-body-secondary">
+            L'alimentazione è stabile da tempo sufficiente, ma la policy richiede
+            un'approvazione manuale prima di riaccendere i dispositivi (§12).
+        </p>
+        <div id="pendingStartupsList"></div>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-header fw-semibold">Eventi recenti</div>
     <div class="card-body">
         <div id="eventsTable"></div>
     </div>
 </div>
+
+@Html.AntiForgeryToken()
 
 @section Scripts {
 <script src="~/js/dashboard.js"></script>

@@ -13,10 +13,10 @@ l'orchestrazione controllata di spegnimento e riaccensione dell'infrastruttura I
 
 | Fase | Contenuto | Stato |
 |---|---|---|
-| **1** | Solution, PostgreSQL + EF Core, Identity, dashboard, lettura NUT, gestione UPS e dispositivi, Safety Agent con SQLite, health check, Docker Compose, documentazione | **completata** — build e 130 test verdi |
-| 2 | Editor regole e sequenze, esecutore di sequenze, timeline del simulatore, audit esteso | da fare |
+| **1** | Solution, PostgreSQL + EF Core, Identity, dashboard, lettura NUT, gestione UPS e dispositivi, Safety Agent con SQLite, health check, Docker Compose, documentazione | **completata** |
+| **2** | `SequenceExecutor` condiviso, esecuzione reale delle sequenze (Orchestrator e Safety Agent), riaccensione automatica con approvazione manuale (casi B/C/D di §11), simulatore con esecuzione reale degli step, editor regole e sequenze, pagina Audit | **completata** — build e 153 test verdi |
 | 3 | Adapter reali (SSH, WinRM, QNAP, Redfish, Wake-on-LAN), gestione credenziali, test non distruttivi | da fare |
-| 4 | Regole e sequenze di riaccensione, verifica alimentazione, recupero errori | da fare |
+| 4 | Retry manuale delle sequenze fallite, editor condizioni annidate, verifica su infrastruttura reale | da fare |
 | 5 | Hardening, backup verificati, notifiche complete, test di resilienza, procedure LIVE | da fare |
 
 ## Architettura
@@ -56,6 +56,7 @@ Dettaglio completo: [docs/01-architettura.md](docs/01-architettura.md) e
 | [10-rischi.md](docs/10-rischi.md) | 22 rischi con mitigazioni e rischi residui accettati |
 | [11-installazione.md](docs/11-installazione.md) | manuale di installazione |
 | [12-amministratore.md](docs/12-amministratore.md) | manuale dell'amministratore |
+| [13-fase2.md](docs/13-fase2.md) | esecuzione delle sequenze, casi B/C/D, editor regole e sequenze, difetti trovati con la verifica reale |
 
 ## Requisiti
 

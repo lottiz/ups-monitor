@@ -3,7 +3,7 @@ using UPSControlCenter.Core.Abstractions;
 using UPSControlCenter.Core.Entities;
 using UPSControlCenter.Core.Enums;
 
-namespace UPSControlCenter.Infrastructure.Adapters;
+namespace UPSControlCenter.Adapters;
 
 /// <summary>
 /// Adapter simulato: registra ciò che <b>avrebbe</b> fatto, senza alcuna operazione di rete.

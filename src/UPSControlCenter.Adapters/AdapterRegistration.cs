@@ -4,7 +4,7 @@ using UPSControlCenter.Core.Abstractions;
 using UPSControlCenter.Core.Entities;
 using UPSControlCenter.Core.Enums;
 
-namespace UPSControlCenter.Infrastructure.Adapters;
+namespace UPSControlCenter.Adapters;
 
 /// <summary>Configurazione della modalità di esecuzione effettiva.</summary>
 public sealed class ExecutionModeOptions

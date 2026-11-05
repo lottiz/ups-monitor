@@ -146,4 +146,65 @@
             }
             console.error('SignalR non disponibile', err);
         });
+
+    // Riaccensioni in attesa di approvazione manuale (§12).
+    function loadPendingStartups() {
+        fetch('/api/admin/startup/pending')
+            .then(function (r) { return r.ok ? r.json() : []; })
+            .then(function (items) {
+                const card = document.getElementById('pendingStartupsCard');
+                const list = document.getElementById('pendingStartupsList');
+                if (!card || !list) { return; }
+
+                if (!items.length) {
+                    card.classList.add('d-none');
+                    return;
+                }
+
+                card.classList.remove('d-none');
+                list.innerHTML = '';
+
+                items.forEach(function (item) {
+                    const row = document.createElement('div');
+                    row.className = 'd-flex justify-content-between align-items-center border rounded p-2 mb-2';
+
+                    const info = document.createElement('div');
+                    info.innerHTML = '<div class="fw-semibold">Blackout ' +
+                        (item.blackoutId || '—') + '</div>' +
+                        '<div class="small text-body-secondary">' + item.triggerReason + '</div>';
+
+                    const button = document.createElement('button');
+                    button.className = 'btn btn-sm btn-primary';
+                    button.textContent = item.approvedAt ? 'Approvata, in attesa dell\'orchestrator' : 'Approva';
+                    button.disabled = !!item.approvedAt;
+                    button.addEventListener('click', function () {
+                        approveStartup(item.id, button);
+                    });
+
+                    row.appendChild(info);
+                    row.appendChild(button);
+                    list.appendChild(row);
+                });
+            })
+            .catch(function () { /* non bloccante: la dashboard resta utilizzabile */ });
+    }
+
+    async function approveStartup(runId, button) {
+        button.disabled = true;
+        const result = await window.UpsCc.postJson('/api/admin/startup/' + runId + '/approve');
+
+        if (result.ok) {
+            window.UpsCc.toast(result.payload.message, 'success');
+            loadPendingStartups();
+            return;
+        }
+
+        button.disabled = false;
+        window.UpsCc.toast(
+            result.payload && result.payload.message ? result.payload.message : 'Approvazione non riuscita.',
+            'danger');
+    }
+
+    loadPendingStartups();
+    setInterval(loadPendingStartups, 15000);
 })();

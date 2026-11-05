@@ -3,27 +3,44 @@ using UPSControlCenter.Core.Entities;
 using UPSControlCenter.Core.Enums;
 using UPSControlCenter.Core.Nut;
 using UPSControlCenter.Core.Rules;
+using UPSControlCenter.Core.Sequencing;
 
 namespace UPSControlCenter.Simulator;
 
 /// <summary>
 /// Motore di simulazione dei blackout (§14).
 /// <para>
-/// Usa <see cref="RuleEvaluator"/> e <see cref="BlackoutTracker"/>, cioè <b>gli stessi tipi</b>
-/// dell'esecuzione reale. Non esiste un motore decisionale alternativo per la simulazione, quindi
-/// i risultati non possono divergere da quelli di un blackout vero.
+/// Usa <see cref="RuleEvaluator"/>, <see cref="BlackoutTracker"/> e <see cref="SequenceExecutor"/>,
+/// cioè <b>gli stessi tipi</b> dell'esecuzione reale. Non esiste un motore decisionale o un
+/// esecutore alternativo per la simulazione: una sequenza simulata e una reale eseguono
+/// esattamente lo stesso codice, con <see cref="SimulatedDeviceAdapter"/> al posto
+/// dell'adapter reale (§8.1) e senza attese reali sui ritardi configurati.
 /// </para>
 /// </summary>
 public sealed class BlackoutSimulator
 {
     private readonly RuleEvaluator _evaluator = new();
 
-    public SimulationResultDto Run(SimulationScenarioDto scenario, ShutdownPolicy policy,
-        IReadOnlyList<ShutdownRule> rules)
+    /// <param name="scenario">Parametri dello scenario simulato.</param>
+    /// <param name="policy">Policy di spegnimento da valutare.</param>
+    /// <param name="rules">Regole della policy.</param>
+    /// <param name="shutdownSteps">
+    /// Step della sequenza di spegnimento predefinita, già risolti (gruppi espansi, esclusioni
+    /// applicate). Vuoto se non è stata configurata una sequenza: la simulazione mostrerà la
+    /// soglia raggiunta senza eseguire alcuno step.
+    /// </param>
+    /// <param name="devices">Dispositivi coinvolti negli step, indicizzati per id.</param>
+    public async Task<SimulationResultDto> RunAsync(SimulationScenarioDto scenario,
+        ShutdownPolicy policy, IReadOnlyList<ShutdownRule> rules,
+        IReadOnlyList<ExecutableStep>? shutdownSteps = null,
+        IReadOnlyDictionary<Guid, ManagedDevice>? devices = null)
     {
         ArgumentNullException.ThrowIfNull(scenario);
         ArgumentNullException.ThrowIfNull(policy);
         ArgumentNullException.ThrowIfNull(rules);
+
+        shutdownSteps ??= [];
+        devices ??= new Dictionary<Guid, ManagedDevice>();
 
         var start = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
         var clock = new SimulatedClock(start);
@@ -31,6 +48,8 @@ public sealed class BlackoutSimulator
 
         var nut = new SimulatedNutClient(scenario, "simulated-ups");
         var tracker = new BlackoutTracker("simulated-ups", clock, bootId, policy.DebounceSamples);
+        var executor = new SequenceExecutor(new SimulatedAdapterSelector(scenario), clock);
+        var runStore = new InMemorySequenceRunStore();
 
         var timeline = new List<SimulationTimelineEntryDto>();
         var tick = Math.Max(1, scenario.TickSeconds);
@@ -101,6 +120,50 @@ public sealed class BlackoutSimulator
                     ? "Decisione basata su dati incerti o incompleti"
                     : null
             });
+
+            // L'esecuzione avviene una sola volta, nel tick dello scatto: usa lo stesso motore
+            // dell'esecuzione reale, con l'adapter simulato e senza attendere i ritardi
+            // configurati (§14). Le righe di timeline prodotte qui mostrano esito per esito,
+            // non solo "avviata".
+            if (plannedAction == "Avvio sequenza di spegnimento" && shutdownSteps.Count > 0)
+            {
+                var result = await executor.ExecuteAsync(
+                    runId: $"simulation:{triggeredAt}",
+                    direction: SequenceDirection.Shutdown,
+                    steps: shutdownSteps,
+                    devices: devices,
+                    store: runStore,
+                    evaluateCondition: node => ConditionEvaluator.Evaluate(node, ctx),
+                    delay: (_, _) => Task.CompletedTask);
+
+                foreach (var action in result.Actions)
+                {
+                    var step = shutdownSteps.FirstOrDefault(s => s.Id == action.StepId);
+                    var deviceName = action.DeviceId is { } id && devices.TryGetValue(id, out var d)
+                        ? d.Name
+                        : null;
+
+                    timeline.Add(new SimulationTimelineEntryDto
+                    {
+                        SimulatedSecond = second,
+                        Timestamp = clock.UtcNow,
+                        UpsStatus = outcome.DebouncedStatus.ToNutString(),
+                        RemainingRuntimeSeconds = snapshot.BatteryRuntimeSeconds,
+                        BatteryChargePercent = snapshot.BatteryChargePercent,
+                        AppliedRule = decision.TriggeredRuleName,
+                        PlannedAction = step?.Name ?? action.StepId.ToString(),
+                        DeviceName = deviceName,
+                        DecisionReason = decision.Reason,
+                        SimulatedOutcome = action.State.ToString(),
+                        Error = action.State is ActionState.Failed or ActionState.TimedOut
+                            ? action.Message
+                            : null
+                    });
+                }
+
+                triggerReason = $"{triggerReason} — sequenza terminata con stato {result.FinalState} " +
+                                $"({result.Actions.Count} azioni).";
+            }
 
             clock.Advance(TimeSpan.FromSeconds(tick));
         }

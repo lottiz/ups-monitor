@@ -115,7 +115,8 @@ public sealed class ConfigurationPublisher(
                 UnknownRuntimePolicy = policy.UnknownRuntimePolicy,
                 UncertainDurationPolicy = policy.UncertainDurationPolicy,
                 CommunicationLostPolicy = policy.CommunicationLostPolicy,
-                CommunicationLostGraceSeconds = policy.CommunicationLostGraceSeconds
+                CommunicationLostGraceSeconds = policy.CommunicationLostGraceSeconds,
+                PowerRestoredDuringShutdownPolicy = policy.PowerRestoredDuringShutdownPolicy
             },
             Devices = [.. devices.Select(d => new SafetyDevice
             {
