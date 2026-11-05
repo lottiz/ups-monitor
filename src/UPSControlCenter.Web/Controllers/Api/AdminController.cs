@@ -26,6 +26,14 @@ public sealed record EnableLiveRequest
     public required string Reason { get; init; }
 }
 
+public sealed record EnableLiveModeRequest
+{
+    /// <summary>Conferma digitata dall'utente: deve essere esattamente "LIVE".</summary>
+    public required string Confirmation { get; init; }
+
+    public required string Reason { get; init; }
+}
+
 /// <summary>Operazioni amministrative sensibili (§8.2, §8.3).</summary>
 [ApiController]
 [Route("api/admin")]
@@ -92,6 +100,73 @@ public sealed class AdminController(
         {
             message = "Blocco rimosso. La modalità resta DRY_RUN fino ad abilitazione esplicita.",
             executionMode = await settings.GetExecutionModeAsync(ct)
+        });
+    }
+
+    /// <summary>
+    /// Attiva la modalità LIVE globale. Richiede: ruolo Administrator, conferma digitata
+    /// ("LIVE"), motivazione, la variabile di deployment <c>UPS_ALLOW_LIVE=1</c>, kill switch
+    /// non attivo (§8.2).
+    /// <para>
+    /// Da sola non autorizza alcuna operazione reale: senza almeno un adapter abilitato con
+    /// <see cref="EnableLiveAdapter"/>, il dispatcher ricade comunque sul simulato per ogni
+    /// dispositivo (§8.1). È la condizione "modalità richiesta", non "modalità sufficiente".
+    /// </para>
+    /// </summary>
+    [HttpPost("live/enable-mode")]
+    [Authorize(Policy = Policies.EnableLive)]
+    [EnableRateLimiting("sensitive")]
+    public async Task<IActionResult> EnableLiveMode([FromBody] EnableLiveModeRequest request,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var user = User.Identity?.Name ?? "sconosciuto";
+
+        var deploymentAllows = configuration["UPS_ALLOW_LIVE"] == "1"
+            || Environment.GetEnvironmentVariable("UPS_ALLOW_LIVE") == "1";
+
+        if (!deploymentAllows)
+        {
+            await audit.RecordAsync(new AuditEntry
+            {
+                Action = "Live.EnableMode.Refused",
+                EntityType = "ExecutionMode",
+                UserName = user,
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                Outcome = "Refused",
+                Reason = "Variabile di deployment UPS_ALLOW_LIVE assente."
+            }, ct);
+            await db.SaveChangesAsync(ct);
+
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                message = "Modalità LIVE non consentita da questo deployment. " +
+                          "Impostare UPS_ALLOW_LIVE=1 nell'ambiente dei servizi e riavviarli."
+            });
+        }
+
+        if (!string.Equals(request.Confirmation, "LIVE", StringComparison.Ordinal))
+            return BadRequest(new { message = "Digitare esattamente «LIVE» per confermare." });
+
+        if (string.IsNullOrWhiteSpace(request.Reason))
+            return BadRequest(new { message = "La motivazione è obbligatoria." });
+
+        if (killSwitch.IsAutomationDisabled())
+            return Conflict(new
+            {
+                message = "Kill switch attivo: rimuoverlo prima di attivare la modalità LIVE."
+            });
+
+        await settings.SetAsync(SystemSettingKeys.ExecutionMode, "Live", user, request.Reason, ct);
+
+        logger.LogWarning("MODALITÀ LIVE ATTIVATA da {User}. Motivo: {Reason}", user, request.Reason);
+
+        return Ok(new
+        {
+            message = "Modalità LIVE attivata. Nessuna operazione reale è ancora possibile senza " +
+                      "abilitare almeno un adapter.",
+            executionMode = "Live"
         });
     }
 

@@ -10,6 +10,7 @@ using UPSControlCenter.Core.Abstractions;
 using UPSControlCenter.Core.Enums;
 using UPSControlCenter.Core.Safety;
 using UPSControlCenter.Adapters;
+using UPSControlCenter.Adapters.Live;
 using UPSControlCenter.Infrastructure.Options;
 using UPSControlCenter.Infrastructure.Persistence;
 using UPSControlCenter.Infrastructure.Security;
@@ -128,7 +129,7 @@ builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddSingleton<INutClient, NutTcpClient>();
 builder.Services.AddSingleton<IKillSwitch, FileKillSwitch>();
 builder.Services.AddSingleton<SafetyConfigurationValidator>();
-builder.Services.AddScoped<ICredentialProtector, DataProtectionCredentialProtector>();
+builder.Services.AddSingleton<ICredentialProtector, DataProtectionCredentialProtector>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ISystemSettingsService, SystemSettingsService>();
 builder.Services.AddScoped<IConfigurationPublisher, ConfigurationPublisher>();
@@ -144,6 +145,10 @@ var executionOptions = new ExecutionModeOptions
     DeploymentAllowsLive = Environment.GetEnvironmentVariable("UPS_ALLOW_LIVE") == "1"
 };
 builder.Services.AddDeviceAdapters(executionOptions);
+
+// Adapter reali (Fase 3, §24): sempre registrati, l'abilitazione effettiva è decisa a runtime
+// da ExecutionModeSyncService leggendo SystemSettings, non alla costruzione del contenitore.
+builder.Services.AddLiveDeviceAdapters();
 
 // ---------------------------------------------------------------- rate limiting
 builder.Services.AddRateLimiter(options =>

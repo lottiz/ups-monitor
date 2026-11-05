@@ -1,10 +1,13 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Formatting.Compact;
+using UPSControlCenter.Adapters;
+using UPSControlCenter.Adapters.Live;
 using UPSControlCenter.Core.Abstractions;
 using UPSControlCenter.Core.Sequencing;
-using UPSControlCenter.Adapters;
 using UPSControlCenter.Infrastructure.Persistence;
+using UPSControlCenter.Infrastructure.Security;
 using UPSControlCenter.Infrastructure.Services;
 using UPSControlCenter.Nut;
 using UPSControlCenter.Orchestrator;
@@ -46,6 +49,15 @@ builder.Services.AddDbContextFactory<UpsDbContext>(ConfigureDbContext);
 builder.Services.AddScoped<UpsDbContext>(sp =>
     sp.GetRequiredService<IDbContextFactory<UpsDbContext>>().CreateDbContext());
 
+// Stesso volume delle chiavi del portale (§6.5): un segreto cifrato da ups-web deve poter
+// essere decifrato qui per connettersi ai dispositivi reali, e viceversa. Il percorso è
+// configurato identico in docker-compose.yml.
+var keyRingPath = builder.Configuration["DataProtection:KeyRingPath"] ?? "/keys";
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(keyRingPath))
+    .SetApplicationName("UPSControlCenter");
+builder.Services.AddSingleton<ICredentialProtector, DataProtectionCredentialProtector>();
+
 builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddSingleton<INutClient, NutTcpClient>();
 
@@ -61,6 +73,10 @@ var executionOptions = new ExecutionModeOptions
                            || Environment.GetEnvironmentVariable("UPS_ALLOW_LIVE") == "1"
 };
 builder.Services.AddDeviceAdapters(executionOptions);
+
+// Adapter reali (Fase 3, §24): sempre registrati, l'abilitazione effettiva è decisa a runtime
+// da ExecutionModeSyncService leggendo SystemSettings, non alla costruzione del contenitore.
+builder.Services.AddLiveDeviceAdapters();
 
 // Esecuzione delle sequenze: stesso motore condiviso con Safety Agent e Simulatore (§2.1).
 builder.Services.AddSingleton<SequenceExecutor>();

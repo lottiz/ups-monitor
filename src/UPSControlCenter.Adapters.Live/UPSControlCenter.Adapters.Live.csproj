@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Adapter reali (SSH, Redfish, Wake-on-LAN, §24 Fase 3). Progetto separato da
+       UPSControlCenter.Adapters: referenziato SOLO da Web e Orchestrator, mai dal Safety Agent,
+       che in questa fase del progetto resta programmaticamente privo di qualunque percorso verso
+       operazioni reali (docs/13, §13). Dipende da Infrastructure per ICredentialProtector: è un
+       vincolo accettabile perché Web/Orchestrator già referenziano Infrastructure. -->
+  <ItemGroup>
+    <PackageReference Include="SSH.NET" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\UPSControlCenter.Core\UPSControlCenter.Core.csproj" />
+    <ProjectReference Include="..\UPSControlCenter.Adapters\UPSControlCenter.Adapters.csproj" />
+    <ProjectReference Include="..\UPSControlCenter.Infrastructure\UPSControlCenter.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

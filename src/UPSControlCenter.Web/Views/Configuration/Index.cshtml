@@ -11,6 +11,65 @@
     non valida non sostituisce mai una valida.
 </div>
 
+<div class="card mb-3" id="liveCard">
+    <div class="card-header fw-semibold">Attivazione LIVE</div>
+    <div class="card-body">
+        <div class="alert alert-warning py-2 small mb-3" role="alert">
+            Nessun pulsante qui attiva da solo operazioni reali. Servono, insieme: la variabile
+            di deployment <code>UPS_ALLOW_LIVE=1</code> sul servizio (non modificabile da qui),
+            la modalità LIVE attivata, l'adapter specifico abilitato, e il kill switch non
+            attivo (§8.2).
+        </div>
+
+        <dl class="row small mb-3">
+            <dt class="col-4 col-md-3">Modalità corrente</dt>
+            <dd class="col-8 col-md-9" id="currentMode">verifica in corso…</dd>
+            <dt class="col-4 col-md-3">Adapter abilitati</dt>
+            <dd class="col-8 col-md-9" id="currentAdapters">—</dd>
+        </dl>
+
+        <div class="row g-2 align-items-end mb-3">
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="liveModeReason">Motivazione attivazione LIVE</label>
+                <input class="form-control" id="liveModeReason" placeholder="Obbligatoria, finisce nell'audit" />
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label" for="liveModeConfirm">Digitare «LIVE»</label>
+                <input class="form-control" id="liveModeConfirm" placeholder="LIVE" />
+            </div>
+            <div class="col-12 col-md-3">
+                <button class="btn btn-warning w-100" id="enableLiveModeBtn">Attiva modalità LIVE</button>
+            </div>
+        </div>
+
+        <hr />
+
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label" for="adapterName">Adapter</label>
+                <select class="form-select" id="adapterName">
+                    <option value="Ssh">Ssh (server Linux)</option>
+                    <option value="QnapSsh">QnapSsh (NAS QNAP)</option>
+                    <option value="Redfish">Redfish (BMC / XClarity)</option>
+                    <option value="WinRm">WinRm (server Windows)</option>
+                    <option value="WakeOnLan">WakeOnLan (accensione)</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="adapterReason">Motivazione</label>
+                <input class="form-control" id="adapterReason" placeholder="Obbligatoria" />
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label" for="adapterConfirm">Digitare il nome dell'adapter</label>
+                <input class="form-control" id="adapterConfirm" placeholder="es. Ssh" />
+            </div>
+            <div class="col-12 col-md-2">
+                <button class="btn btn-outline-warning w-100" id="enableAdapterBtn">Abilita</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="card mb-3">
     <div class="card-header fw-semibold">Pubblicazione</div>
     <div class="card-body">

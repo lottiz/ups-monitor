@@ -140,8 +140,11 @@ public sealed class ShutdownExecutionCoordinator(
         var executable = SequenceStepResolver.Resolve(steps, groupMembers);
 
         var deviceIds = executable.SelectMany(s => s.TargetDeviceIds).Distinct().ToList();
+        // Include del profilo di connessione: gli adapter reali (Fase 3) ne hanno bisogno per
+        // le credenziali. Il segreto resta cifrato finché un adapter non lo decifra esplicitamente.
         var devices = await db.ManagedDevices
             .AsNoTracking()
+            .Include(d => d.ConnectionProfile)
             .Where(d => deviceIds.Contains(d.Id))
             .ToDictionaryAsync(d => d.Id, appCt);
 

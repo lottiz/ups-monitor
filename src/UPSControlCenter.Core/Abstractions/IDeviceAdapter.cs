@@ -39,6 +39,17 @@ public interface IDeviceAdapter
     /// <summary>Vero se questo adapter effettua operazioni reali sulla rete.</summary>
     bool PerformsRealOperations { get; }
 
+    /// <summary>
+    /// Protocollo di spegnimento gestito da questo adapter, se applicabile. Un dispositivo ha
+    /// protocolli di spegnimento e di accensione indipendenti (es. SSH per spegnere, Wake-on-LAN
+    /// per accendere, §12): un singolo adapter copre tipicamente solo una delle due direzioni.
+    /// Null se l'adapter non gestisce lo spegnimento (es. l'adapter Wake-on-LAN).
+    /// </summary>
+    ShutdownProtocol? SupportedShutdownProtocol => null;
+
+    /// <summary>Protocollo di accensione gestito da questo adapter, se applicabile. Vedi <see cref="SupportedShutdownProtocol"/>.</summary>
+    StartupProtocol? SupportedStartupProtocol => null;
+
     bool CanHandle(ManagedDevice device);
 
     /// <summary>Spegnimento controllato. Mai forzato: §8.5 vieta il force-off automatico.</summary>

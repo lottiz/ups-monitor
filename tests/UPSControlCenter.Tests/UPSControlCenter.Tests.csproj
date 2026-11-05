@@ -22,6 +22,7 @@
     <ProjectReference Include="..\..\src\UPSControlCenter.SafetyAgent\UPSControlCenter.SafetyAgent.csproj" />
     <ProjectReference Include="..\..\src\UPSControlCenter.Notifications\UPSControlCenter.Notifications.csproj" />
     <ProjectReference Include="..\..\src\UPSControlCenter.Adapters\UPSControlCenter.Adapters.csproj" />
+    <ProjectReference Include="..\..\src\UPSControlCenter.Adapters.Live\UPSControlCenter.Adapters.Live.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

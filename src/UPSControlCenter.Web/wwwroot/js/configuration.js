@@ -173,3 +173,78 @@
         }
     });
 })();
+
+/* Attivazione LIVE: modalità globale e abilitazione per singolo adapter (§8.2). */
+(function () {
+    'use strict';
+
+    function loadStatus() {
+        fetch('/api/dashboard/automation')
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+                if (!data) { return; }
+                document.getElementById('currentMode').textContent =
+                    data.automationDisabled ? 'Disabilitata (kill switch)' : data.executionMode;
+                document.getElementById('currentAdapters').textContent =
+                    (data.liveEnabledAdapters && data.liveEnabledAdapters.length)
+                        ? data.liveEnabledAdapters.join(', ')
+                        : 'nessuno';
+            })
+            .catch(function () { /* la pagina resta utilizzabile anche senza questo dato */ });
+    }
+
+    loadStatus();
+
+    const enableModeBtn = document.getElementById('enableLiveModeBtn');
+    if (enableModeBtn) {
+        enableModeBtn.addEventListener('click', async function () {
+            const reason = document.getElementById('liveModeReason').value.trim();
+            const confirmation = document.getElementById('liveModeConfirm').value.trim();
+
+            if (!window.confirm(
+                'Attivare la modalità LIVE? Da sola non esegue operazioni reali, ma è un ' +
+                'passo verso la possibilità di eseguirne.')) {
+                return;
+            }
+
+            const result = await window.UpsCc.postJson('/api/admin/live/enable-mode',
+                { reason: reason, confirmation: confirmation });
+
+            if (result.ok) {
+                window.UpsCc.toast(result.payload.message, 'warning');
+                loadStatus();
+            } else {
+                window.UpsCc.toast(
+                    result.payload && result.payload.message ? result.payload.message : 'Attivazione non riuscita.',
+                    'danger');
+            }
+        });
+    }
+
+    const enableAdapterBtn = document.getElementById('enableAdapterBtn');
+    if (enableAdapterBtn) {
+        enableAdapterBtn.addEventListener('click', async function () {
+            const adapterName = document.getElementById('adapterName').value;
+            const reason = document.getElementById('adapterReason').value.trim();
+            const confirmation = document.getElementById('adapterConfirm').value.trim();
+
+            if (!window.confirm(
+                'Abilitare l\'adapter «' + adapterName + '» per operazioni reali? Agirà solo sui ' +
+                'dispositivi configurati con questo protocollo.')) {
+                return;
+            }
+
+            const result = await window.UpsCc.postJson('/api/admin/live/enable-adapter',
+                { adapterName: adapterName, reason: reason, confirmation: confirmation });
+
+            if (result.ok) {
+                window.UpsCc.toast(result.payload.message, 'warning');
+                loadStatus();
+            } else {
+                window.UpsCc.toast(
+                    result.payload && result.payload.message ? result.payload.message : 'Abilitazione non riuscita.',
+                    'danger');
+            }
+        });
+    }
+})();
