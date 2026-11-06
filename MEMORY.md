@@ -34,7 +34,12 @@ con subject `10.0.0.8`. Aggiornati anche i manuali: i probe esterni usano HTTPS 
 deve puntare all'IP presente nel certificato, dopo aver installato la CA Caddy nel trust store
 dell'host.
 
-Verifiche: `deploy/scripts/test-install-all.sh` **37 passati**; test .NET **199 passati,
+Una seconda verifica sul server con Caddy 2.11.9 ha mostrato il certificato emesso correttamente
+ma ancora `internal error` da `curl`: i client che si collegano direttamente a un IPv4 possono
+omettere SNI. Riprodotto con `openssl s_client -noservername` su Caddy 2.11.8; aggiunto
+`default_sni {$BIND_ADDRESS}` perché Caddy selezioni il certificato IP anche senza SNI.
+
+Verifiche: `deploy/scripts/test-install-all.sh` **38 passati**; test .NET **199 passati,
 13 saltati** (PostgreSQL non disponibile); `caddy adapt` riuscito con `BIND_ADDRESS=10.0.0.8`.
 
 Dettaglio completo in `docs/14-fase3.md` (architettura, pinning, difetti trovati, tabella).

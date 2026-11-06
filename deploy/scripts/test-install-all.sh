@@ -141,6 +141,8 @@ assert_true "il certificato Caddy usa l'IP dichiarato in BIND_ADDRESS" \
     file_contains "$REPO_ROOT/deploy/caddy/Caddyfile" '{$BIND_ADDRESS}:443 {'
 assert_true "Compose passa BIND_ADDRESS al container Caddy" \
     file_contains "$REPO_ROOT/docker-compose.yml" 'BIND_ADDRESS: ${BIND_ADDRESS:-127.0.0.1}'
+assert_true "Caddy seleziona il certificato IP anche per client senza SNI" \
+    file_contains "$REPO_ROOT/deploy/caddy/Caddyfile" 'default_sni {$BIND_ADDRESS}'
 assert_false "la gestione automatica del certificato Caddy non è disabilitata" \
     file_contains "$REPO_ROOT/deploy/caddy/Caddyfile" 'auto_https off'
 

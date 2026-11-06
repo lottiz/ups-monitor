@@ -6,6 +6,13 @@
 # finché non importi la CA generata (storage:pki/authorities/local/root.crt nel volume
 # ups-caddy-data) o non sostituisci questo blocco con un certificato reale, se un giorno
 # il portale diventa raggiungibile da Internet con un dominio proprio.
+{
+	# I client che raggiungono direttamente un IPv4 possono omettere SNI nel ClientHello.
+	# Senza un nome predefinito Caddy non sa quale certificato presentare e chiude
+	# l'handshake con "internal error", anche se il certificato per l'IP è stato emesso.
+	default_sni {$BIND_ADDRESS}
+}
+
 # L'indirizzo del sito deve corrispondere esattamente a BIND_ADDRESS: un blocco ":443" senza
 # host non sa per quale nome/IP emettere il certificato quando un client si connette
 # direttamente a un IP (non un nome a dominio), e l'handshake TLS fallisce con "internal
