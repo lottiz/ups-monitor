@@ -26,6 +26,16 @@ services:
   # ------------------------------------------------------------------ database
   ups-db:
     <<: *common
+    # L'entrypoint ufficiale di Postgres parte come root per chown dei file e passa poi
+    # all'utente postgres (gosu): senza queste capacità, azzerate da cap_drop:ALL di x-common,
+    # falliva con "chmod: Operation not permitted" / "failed switching to 'postgres'" al primo
+    # avvio reale (mai verificato prima contro un runtime Docker vero, non solo contro i test).
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
     image: postgres:17.6-bookworm
     container_name: ups-db
     environment:
