@@ -3,7 +3,7 @@
 (function () {
     'use strict';
 
-    const upsId = window.UpsCcLoadAnalysis.upsId;
+    const upsId = document.querySelector('.page-heading[data-ups-id]').dataset.upsId;
     const storageKey = 'ups-load-analysis-' + upsId;
 
     const liveCurrentEl = document.getElementById('liveCurrent');

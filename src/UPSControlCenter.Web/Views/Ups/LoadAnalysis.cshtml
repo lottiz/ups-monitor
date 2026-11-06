@@ -3,7 +3,7 @@
     ViewData["Title"] = "Analisi carico — " + Model.Name;
 }
 
-<header class="page-heading">
+<header class="page-heading" data-ups-id="@Model.Id">
     <div>
         <div class="eyebrow">Analisi stanza per stanza</div>
         <h1>Carico in tempo reale — @Model.Name</h1>
@@ -89,6 +89,5 @@
 </div>
 
 @section Scripts {
-<script>window.UpsCcLoadAnalysis = { upsId: '@Model.Id' };</script>
 <script src="~/js/load-analysis.js"></script>
 }
