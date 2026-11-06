@@ -25,6 +25,12 @@
     <ProjectReference Include="..\..\src\UPSControlCenter.Adapters.Live\UPSControlCenter.Adapters.Live.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Il formatter è puro .NET: collegare il sorgente evita di trascinare nel progetto test
+         tutte le dipendenze runtime del portale (Identity, Serilog e provider database). -->
+    <Compile Include="..\..\src\UPSControlCenter.Web\Services\DisplayTimeFormatter.cs"
+             Link="Web\DisplayTimeFormatter.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 </Project>

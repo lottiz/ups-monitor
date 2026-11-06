@@ -8,6 +8,42 @@
 
     window.UpsCc = window.UpsCc || {};
 
+    const displayTimeZone = document.documentElement.dataset.displayTimeZone || 'Europe/Rome';
+
+    function formatInstant(value, includeDate, includeSeconds) {
+        if (!value) { return null; }
+
+        const instant = new Date(value);
+        if (Number.isNaN(instant.getTime())) { return null; }
+
+        const options = {
+            timeZone: displayTimeZone,
+            hour: '2-digit', minute: '2-digit',
+            hourCycle: 'h23'
+        };
+        if (includeSeconds) { options.second = '2-digit'; }
+        if (includeDate) {
+            options.day = '2-digit';
+            options.month = '2-digit';
+            options.year = 'numeric';
+        }
+
+        return new Intl.DateTimeFormat('it-IT', options).format(instant);
+    }
+
+    /** Formatta sempre nel fuso operativo configurato, non in quello casuale del browser. */
+    window.UpsCc.formatDateTime = function (value, unavailable) {
+        return formatInstant(value, true, true) || (unavailable || '—');
+    };
+
+    window.UpsCc.formatTime = function (value, unavailable) {
+        return formatInstant(value, false, true) || (unavailable || '—');
+    };
+
+    window.UpsCc.formatTimeShort = function (value, unavailable) {
+        return formatInstant(value, false, false) || (unavailable || '—');
+    };
+
     /** Mostra una notifica temporanea. Sostituisce alert(), che blocca la pagina. */
     window.UpsCc.toast = function (message, variant) {
         const container = document.getElementById('toastContainer');

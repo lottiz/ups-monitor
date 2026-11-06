@@ -12,7 +12,7 @@
             {
                 title: 'Data e ora', field: 'occurredAt', width: 180,
                 formatter: function (cell) {
-                    return new Date(cell.getValue()).toLocaleString('it-IT');
+                    return window.UpsCc.formatDateTime(cell.getValue());
                 }
             },
             { title: 'Tipo', field: 'eventType', headerFilter: 'input' },
@@ -66,10 +66,10 @@
         setText('autoOrchestrator', automation.orchestratorState);
         setText('autoAgent', automation.safetyAgentState);
         setText('autoOrchestratorHb', automation.orchestratorLastHeartbeat
-            ? new Date(automation.orchestratorLastHeartbeat).toLocaleTimeString('it-IT')
+            ? window.UpsCc.formatTime(automation.orchestratorLastHeartbeat)
             : 'non disponibile');
         setText('autoAgentHb', automation.safetyAgentLastHeartbeat
-            ? new Date(automation.safetyAgentLastHeartbeat).toLocaleTimeString('it-IT')
+            ? window.UpsCc.formatTime(automation.safetyAgentLastHeartbeat)
             : 'non disponibile');
         setText('autoConfig', automation.activeConfigVersion > 0
             ? 'v' + automation.activeConfigVersion : 'nessuna pubblicata');
@@ -129,7 +129,7 @@
         setRole('load', window.UpsCc.formatNumber(ups.loadPercent, '%'));
         setRole('vin', window.UpsCc.formatNumber(ups.inputVoltage, 'V'));
         setRole('last-comm', ups.lastCommunicationAt
-            ? new Date(ups.lastCommunicationAt).toLocaleString('it-IT') : 'mai');
+            ? window.UpsCc.formatDateTime(ups.lastCommunicationAt) : 'mai');
     });
 
     connection.onreconnecting(function () {

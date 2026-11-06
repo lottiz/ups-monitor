@@ -37,14 +37,14 @@
             {
                 title: 'Creata il', field: 'createdAt', width: 170,
                 formatter: function (cell) {
-                    return cell.getValue() ? new Date(cell.getValue()).toLocaleString('it-IT') : '—';
+                    return window.UpsCc.formatDateTime(cell.getValue());
                 }
             },
             {
                 title: 'Confermata', field: 'acknowledgedAt', width: 170,
                 formatter: function (cell) {
                     return cell.getValue()
-                        ? new Date(cell.getValue()).toLocaleString('it-IT')
+                        ? window.UpsCc.formatDateTime(cell.getValue())
                         : 'in attesa';
                 }
             },
@@ -52,7 +52,7 @@
                 title: 'Attivata', field: 'activatedAt', width: 170,
                 formatter: function (cell) {
                     return cell.getValue()
-                        ? new Date(cell.getValue()).toLocaleString('it-IT')
+                        ? window.UpsCc.formatDateTime(cell.getValue())
                         : 'in attesa';
                 }
             },

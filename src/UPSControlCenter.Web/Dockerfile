@@ -25,6 +25,12 @@ RUN dotnet publish src/UPSControlCenter.Web/UPSControlCenter.Web.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
+# Le regole IANA servono alla conversione esplicita Europe/Rome, inclusi i passaggi
+# automatici tra ora solare e ora legale.
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
 # Utente non privilegiato: §15 vieta i container privilegiati e il minimo privilegio vale
 # anche dentro il container.
 RUN groupadd -g 64198 upscc && useradd -u 64198 -g 64198 -s /usr/sbin/nologin -M upscc

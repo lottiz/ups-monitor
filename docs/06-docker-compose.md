@@ -16,6 +16,11 @@ I limiti sono volutamente conservativi: il mini PC ospita già PeaNUT, NUT e il 
 sue risorse reali non sono note (§25.3) — vanno verificate con `nproc` / `free -h` prima del deploy
 e i valori in `.env` adeguati.
 
+Il portale conserva gli istanti in UTC e li converte per la sola visualizzazione nel fuso indicato
+da `TZ` (default `Europe/Rome`). La conversione usa le regole IANA incluse nell'immagine Web, quindi
+il passaggio tra ora solare e ora legale è automatico e non dipende dal fuso locale del container o
+del browser.
+
 ## 6.2 Reti
 
 ```yaml

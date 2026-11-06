@@ -10,8 +10,7 @@
             .then(function (r) { return r.ok ? r.json() : []; })
             .then(function (data) {
                 const labels = data.map(function (d) {
-                    return new Date(d.recordedAt).toLocaleTimeString('it-IT',
-                        { hour: '2-digit', minute: '2-digit' });
+                    return window.UpsCc.formatTimeShort(d.recordedAt);
                 });
 
                 new Chart(canvas, {

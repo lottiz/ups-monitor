@@ -1,4 +1,5 @@
 @model DashboardViewModel
+@inject DisplayTimeFormatter DisplayTime
 @{
     ViewData["Title"] = "Dashboard";
 }
@@ -77,8 +78,10 @@ else
 
                     <dt class="col-7">Ultimo heartbeat</dt>
                     <dd class="col-5" id="autoOrchestratorHb">
-                        @(Model.Automation.OrchestratorLastHeartbeat?.ToLocalTime().ToString("HH:mm:ss")
-                          ?? "non disponibile")
+                        @DisplayTime.Format(
+                            Model.Automation.OrchestratorLastHeartbeat,
+                            "HH:mm:ss",
+                            "non disponibile")
                     </dd>
 
                     <dt class="col-7">Safety Agent</dt>
@@ -86,8 +89,10 @@ else
 
                     <dt class="col-7">Ultimo heartbeat</dt>
                     <dd class="col-5" id="autoAgentHb">
-                        @(Model.Automation.SafetyAgentLastHeartbeat?.ToLocalTime().ToString("HH:mm:ss")
-                          ?? "non disponibile")
+                        @DisplayTime.Format(
+                            Model.Automation.SafetyAgentLastHeartbeat,
+                            "HH:mm:ss",
+                            "non disponibile")
                     </dd>
 
                     <dt class="col-7">Configurazione attiva</dt>

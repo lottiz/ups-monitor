@@ -19,10 +19,11 @@ resta obbligatoriamente in `DRY_RUN`. La Fase 3 è completata, con un solo gap d
 | `ExecutionModeSyncService` | risincronizza `ExecutionModeOptions` con `SystemSettings` ogni 10s, senza riavvio |
 | Endpoint `POST /api/admin/live/enable-mode` | nuovo: prima non esisteva alcun modo di attivare `ExecutionMode=Live` |
 | Pinning fingerprint/thumbprint | SSH (host key) e Redfish/WinRM (certificato TLS): nessuna azione reale senza valore pinnato; solo "Test connessione" fa trust-on-first-use |
-| Test automatici | **199 passano, 13 skip** (ambientali, non di prodotto), 0 warning |
+| Test automatici | **202 passano, 13 skip** (ambientali, non di prodotto), 0 warning |
 | Verifica end-to-end reale | catena di attivazione LIVE completa (sincronizzazione, endpoint, kill switch) contro portale e PostgreSQL reali; ogni adapter contro sessioni/server programmabili o realmente in ascolto (Kestrel HTTPS con certificato autofirmato per Redfish, socket UDP reale per Wake-on-LAN) |
 | TLS del portale | corretto il sito Caddy da `:443` a `{$BIND_ADDRESS}:443`: la CA interna emette ora il certificato per l'IP LAN esplicito; Compose passa `BIND_ADDRESS` al proxy |
 | Interfaccia portale | restyling responsive “control room”: navigazione, dashboard, card UPS, metriche, tabelle e form; gli indicatori SignalR riflettono lo stato reale e non sono solo decorativi |
+| Orari interfaccia | conversione esplicita da UTC a `Europe/Rome`, coerente tra rendering Razor e aggiornamenti JavaScript; ora solare/legale applicata automaticamente |
 
 ## Restyling interfaccia
 
@@ -31,13 +32,20 @@ barra di navigazione evidenzia la sezione corrente; modalità `DRY_RUN`/LIVE, st
 della connessione in tempo reale restano sempre testuali oltre che cromatici. Tutti gli asset
 rimangono locali e compatibili con la CSP esistente; nessuna dipendenza web o font esterno.
 
-Verifiche: build completa **0 warning / 0 errori**; test .NET **199 passati, 13 saltati**
+Verifiche: build completa **0 warning / 0 errori**; test .NET **202 passati, 13 saltati**
 (PostgreSQL non disponibile); `git diff --check` pulito.
 
 Correzione successiva alla verifica visiva: SignalR serializza `ExecutionMode` come numero;
 la dashboard mostrava quindi `0`. La UI mappa ora esplicitamente `0`/`DryRun` a `DRY_RUN` e
 `1`/`Live` a `LIVE`; un valore sconosciuto resta “non determinata” e non viene mai scambiato
 per LIVE.
+
+Gli orari non usano più `ToLocalTime()`, che nel container restituiva UTC. Un formatter condiviso
+converte esplicitamente gli istanti nel fuso `Display:TimeZone` (configurato da `TZ`, default
+`Europe/Rome`); lo stesso fuso è esposto agli script client per dashboard, audit, configurazioni e
+storico UPS. L'immagine Web installa i dati IANA `tzdata`. I test coprono UTC+1 in inverno e UTC+2
+in estate. Verificato anche l'avvio dell'app pubblicata: `/health/live` 200, `/` 302 e
+`/api/dashboard/automation` 401 senza autenticazione.
 
 ## Ultima correzione di deploy — TLS su IP LAN
 
@@ -55,7 +63,7 @@ ma ancora `internal error` da `curl`: i client che si collegano direttamente a u
 omettere SNI. Riprodotto con `openssl s_client -noservername` su Caddy 2.11.8; aggiunto
 `default_sni {$BIND_ADDRESS}` perché Caddy selezioni il certificato IP anche senza SNI.
 
-Verifiche: `deploy/scripts/test-install-all.sh` **38 passati**; test .NET **199 passati,
+Verifiche: `deploy/scripts/test-install-all.sh` **38 passati**; test .NET **202 passati,
 13 saltati** (PostgreSQL non disponibile); `caddy adapt` riuscito con `BIND_ADDRESS=10.0.0.8`.
 
 Dettaglio completo in `docs/14-fase3.md` (architettura, pinning, difetti trovati, tabella).

@@ -117,6 +117,7 @@ services:
       Nut__Host: ${NUT_HOST:-host.docker.internal}
       Nut__Port: ${NUT_PORT:-3493}
       Nut__UpsName: ${NUT_UPS_NAME:-riello}
+      Display__TimeZone: ${TZ:-Europe/Rome}
       TZ: ${TZ:-Europe/Rome}
     volumes:
       - ups-dataprotection:/keys

@@ -12,7 +12,7 @@
         columns: [
             {
                 title: 'Data e ora', field: 'occurredAt', width: 180,
-                formatter: cell => new Date(cell.getValue()).toLocaleString('it-IT')
+                formatter: cell => window.UpsCc.formatDateTime(cell.getValue())
             },
             { title: 'Utente', field: 'userName', width: 160, headerFilter: 'input' },
             { title: 'Azione', field: 'action', minWidth: 180, headerFilter: 'input' },

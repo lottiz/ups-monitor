@@ -135,6 +135,10 @@ builder.Services.AddScoped<ISystemSettingsService, SystemSettingsService>();
 builder.Services.AddScoped<IConfigurationPublisher, ConfigurationPublisher>();
 builder.Services.AddScoped<DashboardStateService>();
 builder.Services.AddHostedService<DashboardBroadcastService>();
+// Gli istanti restano UTC in persistenza; solo la presentazione li converte esplicitamente.
+// Affidarsi a DateTime.ToLocalTime() userebbe invece UTC nelle immagini container minimali.
+builder.Services.AddSingleton(new DisplayTimeFormatter(
+    builder.Configuration["Display:TimeZone"] ?? DisplayTimeFormatter.DefaultTimeZoneId));
 
 // Modalità effettiva: DRY_RUN salvo richiesta esplicita E autorizzazione di deployment (§8.2).
 var executionOptions = new ExecutionModeOptions
