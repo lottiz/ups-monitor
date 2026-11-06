@@ -126,10 +126,9 @@ services:
     networks:
       - ups-internal
       - ups-edge
-    ports:
-      # Binding sull'IP del mini PC: non pubblica su 0.0.0.0. Vedi docs/09 §9.4 per le regole
-      # DOCKER-USER, necessarie perché Docker scavalca UFW.
-      - "${BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-8443}:8080"
+    # Nessuna sezione "ports": non pubblicato direttamente. Il TLS è terminato da ups-proxy
+    # (Caddy), l'unico servizio con una porta esposta sull'host (§8.2, Cookie.SecurePolicy
+    # richiede HTTPS: scoperto mancante durante il primo deploy reale).
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -149,6 +148,38 @@ services:
         limits:
           cpus: "${WEB_CPU_LIMIT:-1.0}"
           memory: ${WEB_MEM_LIMIT:-512m}
+
+  # ------------------------------------------------------------- proxy TLS
+  # Termina HTTPS davanti al portale: Cookie.SecurePolicy del portale è "Always" (il cookie
+  # di sessione non viene mai inviato in chiaro, §8.5), quindi serve TLS reale, non solo HTTP.
+  # Certificato autofirmato generato e rinnovato automaticamente da Caddy, offline (nessun
+  # dominio pubblico necessario su una rete puramente LAN): vedi deploy/caddy/Caddyfile.
+  ups-proxy:
+    <<: *common
+    image: caddy:2-alpine
+    container_name: ups-proxy
+    # Porta privilegiata (443): serve la capacità esplicita, azzerata da cap_drop:ALL.
+    cap_add:
+      - NET_BIND_SERVICE
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ups-caddy-data:/data
+    networks:
+      ups-edge:
+        # IP fisso: il portale deve sapere da quale indirizzo arrivano le richieste proxate
+        # per fidarsi dell'intestazione X-Forwarded-For (KnownProxies, §8.5) — un IP che
+        # cambiasse a ogni riavvio renderebbe quella configurazione inutilizzabile.
+        ipv4_address: 172.22.0.2
+    ports:
+      # Binding sull'IP del mini PC: non pubblica su 0.0.0.0 (docs/09 §9.4).
+      - "${BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-8443}:443"
+    depends_on:
+      - ups-web
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128m
 
   # -------------------------------------------------------------- orchestrator
   ups-orchestrator:
@@ -318,3 +349,7 @@ volumes:
   # un passo obbligatorio, non opzionale (§6.5, R12).
   ups-dataprotection:
     name: ups-dataprotection
+  # CA interna e certificati generati da Caddy: perderlo rigenera una CA diversa, richiedendo
+  # di fidarsi di nuovo del certificato nei browser (non un dato critico, solo comodità).
+  ups-caddy-data:
+    name: ups-caddy-data
