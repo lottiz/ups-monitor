@@ -166,10 +166,13 @@ services:
       - ups-caddy-data:/data
     networks:
       ups-edge:
-        # IP fisso: il portale deve sapere da quale indirizzo arrivano le richieste proxate
-        # per fidarsi dell'intestazione X-Forwarded-For (KnownProxies, §8.5) — un IP che
-        # cambiasse a ogni riavvio renderebbe quella configurazione inutilizzabile.
-        ipv4_address: 172.22.0.2
+        # IP fisso, deliberatamente lontano dall'inizio della sottorete: Docker assegna gli
+        # indirizzi dinamici in ordine crescente da .2, e ups-web/ups-orchestrator si uniscono
+        # a questa stessa rete senza un IP fisso proprio — un valore come .2 collide quasi
+        # certamente con uno di loro (visto accadere: "Address already in use" al primo avvio
+        # reale). Il portale deve sapere da quale indirizzo arrivano le richieste proxate per
+        # fidarsi di X-Forwarded-For (KnownProxies, §8.5): da qui l'esigenza di un IP fisso.
+        ipv4_address: 172.22.0.254
     ports:
       # Binding sull'IP del mini PC: non pubblica su 0.0.0.0 (docs/09 §9.4).
       - "${BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-8443}:443"
