@@ -187,9 +187,11 @@ public sealed class NutTcpClient(IOptions<NutClientOptions> options, ILogger<Nut
             InputFrequency = GetDecimal(vars, "input.frequency"),
             OutputFrequency = GetDecimal(vars, "output.frequency"),
             LoadPercent = GetDecimal(vars, "ups.load"),
-            RealPowerWatts = GetDecimal(vars, "ups.realpower"),
-            OutputCurrentAmps = GetDecimal(vars, "output.current"),
-            InputCurrentAmps = GetDecimal(vars, "input.current"),
+            // Alcuni driver trifase non riportano mai il totale, solo output.L1/L2/L3.realpower:
+            // la somma delle fasi presenti è un dato reale aggregato, non una stima (§9.3).
+            RealPowerWatts = GetDecimal(vars, "ups.realpower") ?? SumPhaseValues(vars, "output", "realpower"),
+            OutputCurrentAmps = GetDecimal(vars, "output.current") ?? SumPhaseValues(vars, "output", "current"),
+            InputCurrentAmps = GetDecimal(vars, "input.current") ?? SumPhaseValues(vars, "input", "current"),
             Manufacturer = Get(vars, "ups.mfr"),
             Model = Get(vars, "ups.model"),
             Serial = Get(vars, "ups.serial"),
@@ -201,6 +203,23 @@ public sealed class NutTcpClient(IOptions<NutClientOptions> options, ILogger<Nut
 
     private static string? Get(Dictionary<string, string> vars, string key) =>
         vars.TryGetValue(key, out var v) && !string.IsNullOrWhiteSpace(v) ? v : null;
+
+    /// <summary>
+    /// Somma <c>&lt;prefix&gt;.L1.&lt;suffix&gt;</c>, <c>.L2.</c> e <c>.L3.</c> per le fasi
+    /// effettivamente presenti. Restituisce <c>null</c> se nessuna fase è riportata: una somma
+    /// parziale silenziosa sarebbe un dato inventato tanto quanto un valore a zero (§9.3).
+    /// </summary>
+    private static decimal? SumPhaseValues(Dictionary<string, string> vars, string prefix, string suffix)
+    {
+        decimal? total = null;
+        foreach (var phase in new[] { "L1", "L2", "L3" })
+        {
+            var value = GetDecimal(vars, $"{prefix}.{phase}.{suffix}");
+            if (value is { } v) total = (total ?? 0m) + v;
+        }
+
+        return total;
+    }
 
     /// <summary>Converte in decimal usando la cultura invariante. Un valore non numerico resta null.</summary>
     private static decimal? GetDecimal(Dictionary<string, string> vars, string key)

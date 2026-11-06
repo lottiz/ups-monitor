@@ -116,6 +116,30 @@ public sealed class NutParsingTests
     }
 
     [Fact]
+    public void La_corrente_e_la_potenza_totali_si_sommano_dalle_fasi_quando_il_totale_manca()
+    {
+        // Driver reale osservato in campo: un UPS trifase che riporta solo i valori per fase,
+        // mai output.current/ups.realpower aggregati (§9.2).
+        string[] threePhase =
+        [
+            "VAR riello ups.status \"OL\"",
+            "VAR riello ups.load \"13\"",
+            "VAR riello output.L1.current \"5.7\"",
+            "VAR riello output.L1.realpower \"965\"",
+            "VAR riello output.L2.current \"5.7\"",
+            "VAR riello output.L2.realpower \"965\"",
+            "VAR riello output.L3.current \"0\"",
+            "VAR riello output.L3.realpower \"0\""
+        ];
+
+        var vars = NutTcpClient.ParseVariables(threePhase, "riello");
+        var snapshot = NutTcpClient.BuildSnapshot("riello", DateTimeOffset.UtcNow, vars);
+
+        Assert.Equal(11.4m, snapshot.OutputCurrentAmps);
+        Assert.Equal(1930m, snapshot.RealPowerWatts);
+    }
+
+    [Fact]
     public void Le_righe_di_altri_UPS_vengono_ignorate()
     {
         // Su un server NUT con più UPS la risposta può contenere righe di altri dispositivi.
