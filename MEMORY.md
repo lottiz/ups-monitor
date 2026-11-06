@@ -4,9 +4,9 @@ Ultimo aggiornamento: 2026-11-06
 
 ## Obiettivo corrente
 
-Stabilizzazione del primo deploy reale dopo la Fase 3. Il sistema resta obbligatoriamente in
-`DRY_RUN`. La Fase 3 è completata, con un solo gap di verifica aperto (vedi §"Rischi aperti"
-sotto: adapter WinRM non validato contro un host reale).
+Stabilizzazione del primo deploy reale e rifinitura dell'interfaccia dopo la Fase 3. Il sistema
+resta obbligatoriamente in `DRY_RUN`. La Fase 3 è completata, con un solo gap di verifica aperto
+(vedi §"Rischi aperti" sotto: adapter WinRM non validato contro un host reale).
 
 ## Stato
 
@@ -22,6 +22,17 @@ sotto: adapter WinRM non validato contro un host reale).
 | Test automatici | **199 passano, 13 skip** (ambientali, non di prodotto), 0 warning |
 | Verifica end-to-end reale | catena di attivazione LIVE completa (sincronizzazione, endpoint, kill switch) contro portale e PostgreSQL reali; ogni adapter contro sessioni/server programmabili o realmente in ascolto (Kestrel HTTPS con certificato autofirmato per Redfish, socket UDP reale per Wake-on-LAN) |
 | TLS del portale | corretto il sito Caddy da `:443` a `{$BIND_ADDRESS}:443`: la CA interna emette ora il certificato per l'IP LAN esplicito; Compose passa `BIND_ADDRESS` al proxy |
+| Interfaccia portale | restyling responsive “control room”: navigazione, dashboard, card UPS, metriche, tabelle e form; gli indicatori SignalR riflettono lo stato reale e non sono solo decorativi |
+
+## Restyling interfaccia
+
+Rinnovati layout condiviso e dashboard senza cambiare controller, DTO o flussi operativi. La
+barra di navigazione evidenzia la sezione corrente; modalità `DRY_RUN`/LIVE, stato UPS e stato
+della connessione in tempo reale restano sempre testuali oltre che cromatici. Tutti gli asset
+rimangono locali e compatibili con la CSP esistente; nessuna dipendenza web o font esterno.
+
+Verifiche: build completa **0 warning / 0 errori**; test .NET **199 passati, 13 saltati**
+(PostgreSQL non disponibile); `git diff --check` pulito.
 
 ## Ultima correzione di deploy — TLS su IP LAN
 

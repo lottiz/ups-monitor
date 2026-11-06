@@ -1,4 +1,11 @@
 @using Microsoft.AspNetCore.Mvc.ViewFeatures
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    string NavClass(params string[] controllers) =>
+        controllers.Contains(currentController, StringComparer.OrdinalIgnoreCase)
+            ? "nav-link active"
+            : "nav-link";
+}
 <!DOCTYPE html>
 <html lang="it" data-bs-theme="light">
 <head>
@@ -9,11 +16,15 @@
     <link rel="stylesheet" href="~/lib/tabulator/tabulator.min.css" />
     <link rel="stylesheet" href="~/css/site.css" />
 </head>
-<body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary">
+<body class="app-shell">
+<nav class="navbar navbar-expand-lg navbar-dark app-navbar">
     <div class="container-fluid">
-        <a class="navbar-brand fw-semibold" asp-controller="Dashboard" asp-action="Index">
-            <span aria-hidden="true">⚡</span> UPS Control Center
+        <a class="navbar-brand app-brand" asp-controller="Dashboard" asp-action="Index">
+            <span class="brand-mark" aria-hidden="true">ϟ</span>
+            <span class="brand-copy">
+                <span class="brand-name">UPS Control Center</span>
+                <span class="brand-subtitle">Energy operations</span>
+            </span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                 data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false"
@@ -23,16 +34,16 @@
         <div class="collapse navbar-collapse" id="mainNav">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item">
-                    <a class="nav-link" asp-controller="Dashboard" asp-action="Index">Dashboard</a>
+                    <a class="@NavClass("Dashboard")" asp-controller="Dashboard" asp-action="Index">Dashboard</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" asp-controller="Ups" asp-action="Index">UPS</a>
+                    <a class="@NavClass("Ups")" asp-controller="Ups" asp-action="Index">UPS</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" asp-controller="Devices" asp-action="Index">Dispositivi</a>
+                    <a class="@NavClass("Devices")" asp-controller="Devices" asp-action="Index">Dispositivi</a>
                 </li>
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                    <a class="@NavClass("Rules", "Sequences") dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                         Regole e sequenze
                     </a>
                     <ul class="dropdown-menu">
@@ -43,18 +54,18 @@
                     </ul>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" asp-controller="Simulator" asp-action="Index">Simulatore</a>
+                    <a class="@NavClass("Simulator")" asp-controller="Simulator" asp-action="Index">Simulatore</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" asp-controller="Configuration" asp-action="Index">Configurazioni</a>
+                    <a class="@NavClass("Configuration")" asp-controller="Configuration" asp-action="Index">Configurazioni</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" asp-controller="Audit" asp-action="Index">Audit</a>
+                    <a class="@NavClass("Audit")" asp-controller="Audit" asp-action="Index">Audit</a>
                 </li>
             </ul>
 
             <div class="d-flex align-items-center gap-3">
-                <span id="modeBadge" class="badge text-bg-secondary" title="Modalità di esecuzione">
+                <span id="modeBadge" class="badge mode-pill text-bg-secondary" title="Modalità di esecuzione">
                     Modalità: verifica in corso…
                 </span>
                 <partial name="_LoginPartial" />
@@ -63,14 +74,14 @@
     </div>
 </nav>
 
-<main class="container-fluid py-4" role="main">
+<main class="container-fluid app-main" role="main">
     @RenderBody()
 </main>
 
-<footer class="border-top py-3 mt-4 text-body-secondary">
+<footer class="app-footer text-body-secondary">
     <div class="container-fluid d-flex flex-wrap justify-content-between">
-        <span>UPS Control Center — monitoraggio UPS e orchestrazione dell'alimentazione</span>
-        <span id="connectionState" class="text-body-secondary">Connessione in tempo reale: non attiva</span>
+        <span>UPS Control Center <span class="footer-separator">/</span> Supervisione energetica</span>
+        <span class="connection-indicator"><span id="connectionDot" class="connection-dot connection-off" aria-hidden="true"></span><span id="connectionState">Connessione in tempo reale: non attiva</span></span>
     </div>
 </footer>
 

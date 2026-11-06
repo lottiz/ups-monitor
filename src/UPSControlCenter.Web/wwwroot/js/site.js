@@ -75,13 +75,13 @@
         if (!badge || !automation) { return; }
 
         if (automation.automationDisabled) {
-            badge.className = 'badge text-bg-danger';
+            badge.className = 'badge mode-pill text-bg-danger';
             badge.textContent = 'Automazioni disabilitate';
         } else if (automation.executionMode === 'DryRun' || automation.executionMode === 0) {
-            badge.className = 'badge text-bg-info';
+            badge.className = 'badge mode-pill text-bg-info';
             badge.textContent = 'Modalità: DRY_RUN';
         } else {
-            badge.className = 'badge text-bg-warning';
+            badge.className = 'badge mode-pill text-bg-warning';
             badge.textContent = 'Modalità: LIVE';
         }
     };

@@ -35,6 +35,7 @@
     setInterval(function () { eventsTable.replaceData(); }, 30000);
 
     const stateLabel = document.getElementById('connectionState');
+    const stateDot = document.getElementById('connectionDot');
 
     const connection = new signalR.HubConnectionBuilder()
         .withUrl('/hubs/dashboard')
@@ -44,6 +45,11 @@
     function setText(id, text) {
         const el = document.getElementById(id);
         if (el) { el.textContent = text; }
+    }
+
+    function setConnectionState(text, state) {
+        if (stateLabel) { stateLabel.textContent = text; }
+        if (stateDot) { stateDot.className = 'connection-dot connection-' + state; }
     }
 
     connection.on('AutomationStatusChanged', function (automation) {
@@ -89,19 +95,19 @@
             // Lo stato obsoleto ha la precedenza: mostrare "online" su un dato vecchio
             // sarebbe fuorviante proprio quando conta di più (§5.3).
             if (ups.isStale || !ups.nutConnected) {
-                badge.className = 'badge text-bg-secondary';
+                badge.className = 'badge status-pill text-bg-secondary';
                 badge.textContent = ups.isStale ? 'Dato obsoleto' : 'NUT non connesso';
             } else if (ups.isLowBattery) {
-                badge.className = 'badge text-bg-danger';
+                badge.className = 'badge status-pill text-bg-danger';
                 badge.textContent = 'Batteria scarica';
             } else if (ups.isOnBattery) {
-                badge.className = 'badge text-bg-warning';
+                badge.className = 'badge status-pill text-bg-warning';
                 badge.textContent = 'Su batteria';
             } else if (ups.isOnLine) {
-                badge.className = 'badge text-bg-success';
+                badge.className = 'badge status-pill text-bg-success';
                 badge.textContent = 'Alimentazione di rete';
             } else {
-                badge.className = 'badge text-bg-secondary';
+                badge.className = 'badge status-pill text-bg-secondary';
                 badge.textContent = 'Stato non determinabile';
             }
         }
@@ -121,29 +127,23 @@
     });
 
     connection.onreconnecting(function () {
-        if (stateLabel) {
-            stateLabel.textContent = 'Connessione in tempo reale: riconnessione in corso…';
-        }
+        setConnectionState('Connessione in tempo reale: riconnessione in corso…', 'wait');
     });
 
     connection.onreconnected(function () {
-        if (stateLabel) { stateLabel.textContent = 'Connessione in tempo reale: attiva'; }
+        setConnectionState('Connessione in tempo reale: attiva', 'on');
     });
 
     connection.onclose(function () {
-        if (stateLabel) {
-            stateLabel.textContent = 'Connessione in tempo reale: interrotta (dati non aggiornati)';
-        }
+        setConnectionState('Connessione in tempo reale: interrotta (dati non aggiornati)', 'off');
     });
 
     connection.start()
         .then(function () {
-            if (stateLabel) { stateLabel.textContent = 'Connessione in tempo reale: attiva'; }
+            setConnectionState('Connessione in tempo reale: attiva', 'on');
         })
         .catch(function (err) {
-            if (stateLabel) {
-                stateLabel.textContent = 'Connessione in tempo reale: non disponibile';
-            }
+            setConnectionState('Connessione in tempo reale: non disponibile', 'off');
             console.error('SignalR non disponibile', err);
         });
 

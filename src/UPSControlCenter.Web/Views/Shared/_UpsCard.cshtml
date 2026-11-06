@@ -19,7 +19,7 @@
         seconds is { } s ? TimeSpan.FromSeconds(s).ToString(@"hh\:mm\:ss") : "non disponibile";
 }
 
-<div class="border rounded p-3 mb-3" data-ups-id="@Model.Id">
+<div class="ups-status-card mb-3" data-ups-id="@Model.Id">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
         <div>
             <h2 class="h5 mb-1">@Model.Name</h2>
@@ -33,7 +33,7 @@
             </div>
         </div>
         <div class="text-end">
-            <span class="badge @badgeClass" data-role="status-badge">@badgeText</span>
+            <span class="badge status-pill @badgeClass" data-role="status-badge">@badgeText</span>
             <div class="small text-body-secondary mt-1" data-role="status-text">@Model.StatusText</div>
         </div>
     </div>
@@ -45,23 +45,15 @@
         </div>
     }
 
-    <div class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-2 small">
-        <div><span class="text-body-secondary">Carica batteria</span><br />
-            <span data-role="charge">@Fmt(Model.BatteryChargePercent, "%")</span></div>
-        <div><span class="text-body-secondary">Autonomia residua</span><br />
-            <span data-role="runtime">@FmtRuntime(Model.BatteryRuntimeSeconds)</span></div>
-        <div><span class="text-body-secondary">Carico</span><br />
-            <span data-role="load">@Fmt(Model.LoadPercent, "%")</span></div>
-        <div><span class="text-body-secondary">Potenza</span><br />
-            <span>@Fmt(Model.RealPowerWatts, "W")</span></div>
-        <div><span class="text-body-secondary">Tensione ingresso</span><br />
-            <span data-role="vin">@Fmt(Model.InputVoltage, "V")</span></div>
-        <div><span class="text-body-secondary">Tensione uscita</span><br />
-            <span>@Fmt(Model.OutputVoltage, "V")</span></div>
-        <div><span class="text-body-secondary">Frequenza ingresso</span><br />
-            <span>@Fmt(Model.InputFrequency, "Hz")</span></div>
-        <div><span class="text-body-secondary">Tensione batteria</span><br />
-            <span>@Fmt(Model.BatteryVoltage, "V")</span></div>
+    <div class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-2 small metric-grid">
+        <div><span class="metric-label">Carica batteria</span><span class="metric-value" data-role="charge">@Fmt(Model.BatteryChargePercent, "%")</span></div>
+        <div><span class="metric-label">Autonomia residua</span><span class="metric-value" data-role="runtime">@FmtRuntime(Model.BatteryRuntimeSeconds)</span></div>
+        <div><span class="metric-label">Carico</span><span class="metric-value" data-role="load">@Fmt(Model.LoadPercent, "%")</span></div>
+        <div><span class="metric-label">Potenza</span><span class="metric-value">@Fmt(Model.RealPowerWatts, "W")</span></div>
+        <div><span class="metric-label">Tensione ingresso</span><span class="metric-value" data-role="vin">@Fmt(Model.InputVoltage, "V")</span></div>
+        <div><span class="metric-label">Tensione uscita</span><span class="metric-value">@Fmt(Model.OutputVoltage, "V")</span></div>
+        <div><span class="metric-label">Frequenza ingresso</span><span class="metric-value">@Fmt(Model.InputFrequency, "Hz")</span></div>
+        <div><span class="metric-label">Tensione batteria</span><span class="metric-value">@Fmt(Model.BatteryVoltage, "V")</span></div>
     </div>
 
     @if (Model.PhaseData.Count > 0)

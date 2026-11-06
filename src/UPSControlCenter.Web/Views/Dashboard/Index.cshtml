@@ -3,18 +3,27 @@
     ViewData["Title"] = "Dashboard";
 }
 
+<header class="page-heading">
+    <div>
+        <div class="eyebrow">Centro operativo</div>
+        <h1>Panoramica sistema</h1>
+        <p>Stato energetico, automazioni e infrastruttura in un unico colpo d'occhio.</p>
+    </div>
+    <div class="live-caption"><span class="live-pulse" aria-hidden="true"></span>Dati in tempo reale</div>
+</header>
+
 @* Banner della modalità: deve essere la prima cosa visibile. Confondere DRY_RUN con LIVE è il
    rischio operativo più grave del sistema (§15). *@
 @if (Model.Automation.AutomationDisabled)
 {
-    <div class="alert alert-danger d-flex align-items-center" role="alert">
+    <div class="alert alert-danger mode-banner d-flex align-items-center" role="alert">
         <strong class="me-2">Automazioni disabilitate.</strong>
         Il kill switch è attivo: il monitoraggio prosegue, nessuna sequenza verrà eseguita.
     </div>
 }
 else if (Model.Automation.ExecutionMode == ExecutionMode.DryRun)
 {
-    <div class="alert alert-info d-flex align-items-center" role="alert">
+    <div class="alert alert-info mode-banner d-flex align-items-center" role="alert">
         <strong class="me-2">Modalità DRY_RUN.</strong>
         Le regole vengono valutate e le sequenze registrate, ma nessun comando reale di
         spegnimento o accensione viene inviato ai dispositivi.
@@ -22,7 +31,7 @@ else if (Model.Automation.ExecutionMode == ExecutionMode.DryRun)
 }
 else
 {
-    <div class="alert alert-warning d-flex align-items-center" role="alert">
+    <div class="alert alert-warning mode-banner d-flex align-items-center" role="alert">
         <strong class="me-2">Modalità LIVE.</strong>
         Le operazioni reali sono possibili sugli adapter abilitati:
         @(Model.Automation.LiveEnabledAdapters.Count == 0
@@ -33,9 +42,9 @@ else
 
 <div class="row g-3 mb-4">
     <div class="col-12 col-lg-8">
-        <div class="card h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span class="fw-semibold">Stato UPS</span>
+        <div class="card panel-card h-100">
+            <div class="card-header panel-header d-flex justify-content-between align-items-center">
+                <span><span class="section-kicker">Energia</span><span class="section-title">Stato UPS</span></span>
                 <small class="text-body-secondary">Aggiornamento in tempo reale</small>
             </div>
             <div class="card-body" id="upsCards">
@@ -54,8 +63,8 @@ else
     </div>
 
     <div class="col-12 col-lg-4">
-        <div class="card h-100">
-            <div class="card-header fw-semibold">Stato automazione</div>
+        <div class="card panel-card h-100">
+            <div class="card-header panel-header"><span class="section-kicker">Controllo</span><span class="section-title">Stato automazione</span></div>
             <div class="card-body">
                 <dl class="row mb-0 small" id="automationPanel">
                     <dt class="col-7">Modalità</dt>
@@ -124,8 +133,8 @@ else
     </div>
 </div>
 
-<div class="card mb-4">
-    <div class="card-header fw-semibold">Stato infrastruttura</div>
+<div class="card panel-card mb-4">
+    <div class="card-header panel-header"><span class="section-kicker">Inventario</span><span class="section-title">Stato infrastruttura</span></div>
     <div class="card-body">
         <div class="row g-3 text-center" id="infraPanel">
             <partial name="_InfraTile"
@@ -148,8 +157,8 @@ else
     </div>
 </div>
 
-<div class="card mb-4 d-none" id="pendingStartupsCard">
-    <div class="card-header fw-semibold">Riaccensioni in attesa di approvazione</div>
+<div class="card panel-card mb-4 d-none" id="pendingStartupsCard">
+    <div class="card-header panel-header"><span class="section-kicker">Azioni richieste</span><span class="section-title">Riaccensioni in attesa di approvazione</span></div>
     <div class="card-body">
         <p class="small text-body-secondary">
             L'alimentazione è stabile da tempo sufficiente, ma la policy richiede
@@ -159,8 +168,8 @@ else
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header fw-semibold">Eventi recenti</div>
+<div class="card panel-card">
+    <div class="card-header panel-header"><span class="section-kicker">Cronologia</span><span class="section-title">Eventi recenti</span></div>
     <div class="card-body">
         <div id="eventsTable"></div>
     </div>
