@@ -206,7 +206,7 @@ sudo ./deploy/scripts/backup-sqlite.sh
 docker compose build --pull
 docker compose --profile migrate run --rm ups-migrate
 docker compose up -d
-curl -fsS http://127.0.0.1:8443/health/ready
+curl -fsS https://10.0.0.8:8443/health/ready
 ```
 
 Il Safety Agent continua a proteggere l'infrastruttura durante tutto l'aggiornamento del

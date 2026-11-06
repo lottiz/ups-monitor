@@ -161,6 +161,10 @@ services:
     # Porta privilegiata (443): serve la capacità esplicita, azzerata da cap_drop:ALL.
     cap_add:
       - NET_BIND_SERVICE
+    environment:
+      # Il Caddyfile usa {$BIND_ADDRESS} come indirizzo del sito: deve corrispondere
+      # esattamente a quello su cui il portale viene pubblicato (vedi deploy/caddy/Caddyfile).
+      BIND_ADDRESS: ${BIND_ADDRESS:-127.0.0.1}
     volumes:
       - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ups-caddy-data:/data

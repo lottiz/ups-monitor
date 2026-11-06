@@ -5,7 +5,8 @@
 | Servizio | Immagine | Porte | Restart | Limiti |
 |---|---|---|---|---|
 | `ups-db` | `postgres:17.6-bookworm` | **nessuna pubblicata** | `unless-stopped` | 1 CPU / 1 GiB |
-| `ups-web` | build locale, `mcr.microsoft.com/dotnet/aspnet:10.0` | `10.0.0.8:8443:8443` | `unless-stopped` | 1 CPU / 512 MiB |
+| `ups-web` | build locale, `mcr.microsoft.com/dotnet/aspnet:10.0` | nessuna (HTTP 8080 solo sulle reti Docker) | `unless-stopped` | 1 CPU / 512 MiB |
+| `ups-proxy` | `caddy:2-alpine` | `10.0.0.8:8443:443` | `unless-stopped` | 0.25 CPU / 128 MiB |
 | `ups-orchestrator` | build locale, runtime `dotnet/aspnet:10.0` | nessuna | `unless-stopped` | 0.5 CPU / 384 MiB |
 | `ups-notifications` | stessa immagine orchestrator, entrypoint diverso | nessuna | `unless-stopped` | 0.25 CPU / 256 MiB |
 | `ups-simulator` | stessa immagine orchestrator | nessuna | `no` (profilo `simulation`) | 0.5 CPU / 384 MiB |
@@ -56,7 +57,7 @@ NUT gira sull'host, non in Docker. Opzioni valutate:
 |---|---|---|
 | `ups-db-data` | PGDATA | `pg_dump` logico + `pg_basebackup` opzionale |
 | `ups-dataprotection` | chiavi Data Protection (cifratura credenziali) | **obbligatorio e critico** |
-| `ups-web-certs` | certificato TLS | sì |
+| `ups-caddy-data` | CA interna e certificati TLS di Caddy | sì, per non cambiare CA al ripristino |
 | `ups-backups` → bind `/var/backups/ups-control-center` | dump e dump SQLite | fuori da Docker |
 | `ups-logs` | log strutturati JSON | rotazione |
 

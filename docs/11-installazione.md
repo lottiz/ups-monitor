@@ -2,9 +2,9 @@
 
 Destinatario: amministratore di sistema con accesso `sudo` su `server-nut` (10.0.0.8).
 
-> Nessun passo di questa procedura modifica NUT o PeaNUT. I due interventi sull'host che
-> **richiedono approvazione** sono isolati nelle sezioni 11.3 e 11.7 e sono entrambi
-> evitabili con le alternative indicate.
+> Nessun passo di questa procedura modifica NUT o PeaNUT. I tre interventi sull'host che
+> **richiedono approvazione** sono isolati nelle sezioni 11.3, 11.5 e 11.7. Non eseguire
+> i comandi marcati come modifica dell'host senza aver prima verificato l'anteprima.
 
 ## 11.1 Verifiche preliminari (nessuna modifica)
 
@@ -133,7 +133,7 @@ docker compose up -d
 docker compose ps
 
 # Health check: deve riportare Healthy
-curl -fsS http://127.0.0.1:8443/health/ready
+curl -kfsS https://10.0.0.8:8443/health/ready
 
 # PeaNUT deve continuare a funzionare
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8085/
@@ -145,6 +145,33 @@ Verificare nei log che la modalità effettiva sia DRY_RUN:
 docker compose logs ups-web | grep -i "modalità effettiva"
 docker compose logs ups-orchestrator | grep -i "modalità effettiva"
 ```
+
+### Fiducia nella CA interna di Caddy — modifica dell'host, richiede approvazione
+
+Caddy emette il certificato per l'IP configurato in `BIND_ADDRESS`. Prima di installare la sua
+CA sull'host, estrarla e ispezionarla senza apportare modifiche:
+
+```bash
+mkdir -p /tmp/ups-caddy-ca-preview
+docker compose cp ups-proxy:/data/caddy/pki/authorities/local/root.crt \
+  /tmp/ups-caddy-ca-preview/ups-control-center-caddy.crt
+openssl x509 -in /tmp/ups-caddy-ca-preview/ups-control-center-caddy.crt \
+  -noout -subject -issuer -fingerprint -sha256
+```
+
+Dopo l'approvazione, rendere attendibile la CA per i client di sistema, incluso il Safety Agent:
+
+```bash
+sudo install -m 0644 /tmp/ups-caddy-ca-preview/ups-control-center-caddy.crt \
+  /usr/local/share/ca-certificates/ups-control-center-caddy.crt
+sudo update-ca-certificates
+
+# Ora la verifica deve riuscire senza disabilitare la validazione TLS.
+curl -fsS https://10.0.0.8:8443/health/ready
+```
+
+I browser sugli altri client LAN devono importare la stessa CA nel proprio trust store. Il
+volume `ups-caddy-data` va conservato: se viene ricreato, Caddy genera una CA diversa.
 
 ## 11.6 Installazione del Safety Agent
 
@@ -170,7 +197,7 @@ Inserire **gli stessi valori** di `.env`:
 ```ini
 SafetyAgent__ConfigHmacKeyBase64=<identico a SAFETY_CONFIG_HMAC_KEY>
 SafetyAgent__AgentToken=<identico a SAFETY_AGENT_TOKEN>
-SafetyAgent__ControlPlaneBaseUrl=https://127.0.0.1:8443
+SafetyAgent__ControlPlaneBaseUrl=https://10.0.0.8:8443
 ```
 
 ```bash

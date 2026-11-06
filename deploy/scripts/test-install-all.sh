@@ -16,6 +16,7 @@ set -uo pipefail  # NON -e: un'asserzione fallita non deve interrompere gli altr
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET="${SCRIPT_DIR}/install-all.sh"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 PASS=0
 FAIL=0
@@ -36,6 +37,11 @@ assert_false() {
 assert_eq() {
     local desc="$1" expected="$2" actual="$3"
     if [[ "$expected" == "$actual" ]]; then ok "$desc"; else bad "$desc (atteso='$expected' ottenuto='$actual')"; fi
+}
+
+file_contains() {
+    local file="$1" expected="$2"
+    grep -Fq -- "$expected" "$file"
 }
 
 WORKDIR="$(mktemp -d)"
@@ -127,6 +133,16 @@ assert_true  "10.0.0.8 è un IPv4 valido" is_valid_ipv4 10.0.0.8
 assert_true  "0.0.0.0 è un IPv4 valido in formato (il divieto è una regola separata)" is_valid_ipv4 0.0.0.0
 assert_false "999.1.1.1 non è un IPv4 valido" is_valid_ipv4 999.1.1.1
 assert_false "host.docker.internal non è un IPv4" is_valid_ipv4 host.docker.internal
+
+echo
+echo "=== configurazione TLS Caddy ==="
+
+assert_true "il certificato Caddy usa l'IP dichiarato in BIND_ADDRESS" \
+    file_contains "$REPO_ROOT/deploy/caddy/Caddyfile" '{$BIND_ADDRESS}:443 {'
+assert_true "Compose passa BIND_ADDRESS al container Caddy" \
+    file_contains "$REPO_ROOT/docker-compose.yml" 'BIND_ADDRESS: ${BIND_ADDRESS:-127.0.0.1}'
+assert_false "la gestione automatica del certificato Caddy non è disabilitata" \
+    file_contains "$REPO_ROOT/deploy/caddy/Caddyfile" 'auto_https off'
 
 echo
 echo "=== port_in_use (#8, ss mockato) ==="

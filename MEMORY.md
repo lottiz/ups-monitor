@@ -1,12 +1,12 @@
 # Stato del lavoro — UPS Control Center
 
-Ultimo aggiornamento: 2026-11-05
+Ultimo aggiornamento: 2026-11-06
 
 ## Obiettivo corrente
 
-Fase 3 del piano di sviluppo (§24): adapter reali, gestione credenziali, test non distruttivi.
-**Completata**, con un solo gap di verifica aperto (vedi §"Rischi aperti" sotto: adapter WinRM
-non validato contro un host reale).
+Stabilizzazione del primo deploy reale dopo la Fase 3. Il sistema resta obbligatoriamente in
+`DRY_RUN`. La Fase 3 è completata, con un solo gap di verifica aperto (vedi §"Rischi aperti"
+sotto: adapter WinRM non validato contro un host reale).
 
 ## Stato
 
@@ -21,6 +21,21 @@ non validato contro un host reale).
 | Pinning fingerprint/thumbprint | SSH (host key) e Redfish/WinRM (certificato TLS): nessuna azione reale senza valore pinnato; solo "Test connessione" fa trust-on-first-use |
 | Test automatici | **199 passano, 13 skip** (ambientali, non di prodotto), 0 warning |
 | Verifica end-to-end reale | catena di attivazione LIVE completa (sincronizzazione, endpoint, kill switch) contro portale e PostgreSQL reali; ogni adapter contro sessioni/server programmabili o realmente in ascolto (Kestrel HTTPS con certificato autofirmato per Redfish, socket UDP reale per Wake-on-LAN) |
+| TLS del portale | corretto il sito Caddy da `:443` a `{$BIND_ADDRESS}:443`: la CA interna emette ora il certificato per l'IP LAN esplicito; Compose passa `BIND_ADDRESS` al proxy |
+
+## Ultima correzione di deploy — TLS su IP LAN
+
+Al primo avvio reale Caddy partiva e generava la CA, ma il sito senza host esplicito non aveva
+un subject per cui emettere il certificato quando il client raggiungeva direttamente
+`10.0.0.8`. Inoltre `auto_https off` disabilitava la gestione/caricamento del certificato anche
+con `tls internal`, lasciando l'handshake in errore: il blocco globale è stato rimosso. Il parser
+ufficiale Caddy conferma ora `listen: :443`, matcher host `10.0.0.8` e policy di automazione TLS
+con subject `10.0.0.8`. Aggiornati anche i manuali: i probe esterni usano HTTPS e il Safety Agent
+deve puntare all'IP presente nel certificato, dopo aver installato la CA Caddy nel trust store
+dell'host.
+
+Verifiche: `deploy/scripts/test-install-all.sh` **37 passati**; test .NET **199 passati,
+13 saltati** (PostgreSQL non disponibile); `caddy adapt` riuscito con `BIND_ADDRESS=10.0.0.8`.
 
 Dettaglio completo in `docs/14-fase3.md` (architettura, pinning, difetti trovati, tabella).
 

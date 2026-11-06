@@ -84,7 +84,8 @@ Problema noto: Docker scrive direttamente in `iptables` (catena `DOCKER`) **bypa
 porta pubblicata con `ports: - "8443:8443"` diventa raggiungibile da tutte le reti anche se UFW la
 nega. Mitigazioni adottate, in combinazione:
 
-1. **Binding esplicito all'IP**: `ports: - "10.0.0.8:8443:8443"`. Non pubblica su `0.0.0.0`.
+1. **Binding esplicito all'IP**: `ports: - "10.0.0.8:8443:443"`. Non pubblica su `0.0.0.0`;
+   la porta 443 è quella del proxy TLS Caddy, mentre `ups-web:8080` resta solo sulle reti Docker.
 2. **Regole in `DOCKER-USER`**, la catena che Docker rispetta:
 
 ```bash

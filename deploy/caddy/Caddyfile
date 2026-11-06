@@ -3,14 +3,14 @@
 # "tls internal" usa la CA interna generata e gestita automaticamente da Caddy: funziona
 # offline, senza bisogno di un dominio pubblico o di Internet — adatto a un deployment
 # puramente su rete LAN come questo. Il browser segnalerà "certificato non attendibile"
-# finché non importi la CA generata (deploy/scripts/trust-caddy-ca.sh) o non sostituisci
-# questo blocco con un certificato reale, se un giorno il portale diventa raggiungibile da
-# Internet con un dominio proprio.
-{
-	auto_https off
-}
-
-:443 {
+# finché non importi la CA generata (storage:pki/authorities/local/root.crt nel volume
+# ups-caddy-data) o non sostituisci questo blocco con un certificato reale, se un giorno
+# il portale diventa raggiungibile da Internet con un dominio proprio.
+# L'indirizzo del sito deve corrispondere esattamente a BIND_ADDRESS: un blocco ":443" senza
+# host non sa per quale nome/IP emettere il certificato quando un client si connette
+# direttamente a un IP (non un nome a dominio), e l'handshake TLS fallisce con "internal
+# error" — scoperto al primo avvio reale.
+{$BIND_ADDRESS}:443 {
 	tls internal
 
 	reverse_proxy ups-web:8080
