@@ -25,4 +25,16 @@ public sealed class DisplayTimeFormatterTests
 
         Assert.Equal("mai", formatter.Format(null, "dd/MM/yyyy HH:mm:ss", "mai"));
     }
+
+    [Theory]
+    [InlineData("2026-01-15", "2026-01-14T23:00:00+00:00")] // ora solare: UTC+1
+    [InlineData("2026-07-15", "2026-07-14T22:00:00+00:00")] // ora legale: UTC+2
+    public void ToUtcStartOfDay_applica_il_fuso_dell_interfaccia(string date, string expectedUtc)
+    {
+        var formatter = new DisplayTimeFormatter("Europe/Rome");
+
+        var result = formatter.ToUtcStartOfDay(DateOnly.Parse(date));
+
+        Assert.Equal(DateTimeOffset.Parse(expectedUtc), result);
+    }
 }

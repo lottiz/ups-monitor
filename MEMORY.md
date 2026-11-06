@@ -19,7 +19,8 @@ resta obbligatoriamente in `DRY_RUN`. La Fase 3 è completata, con un solo gap d
 | `ExecutionModeSyncService` | risincronizza `ExecutionModeOptions` con `SystemSettings` ogni 10s, senza riavvio |
 | Endpoint `POST /api/admin/live/enable-mode` | nuovo: prima non esisteva alcun modo di attivare `ExecutionMode=Live` |
 | Pinning fingerprint/thumbprint | SSH (host key) e Redfish/WinRM (certificato TLS): nessuna azione reale senza valore pinnato; solo "Test connessione" fa trust-on-first-use |
-| Test automatici | **217 passano, 0 skip** con PostgreSQL 16 portabile, 0 warning |
+| Test automatici | **219 totali**: 206 passano, 13 skip ambientali (PostgreSQL non disponibile in questo ambiente), 0 warning |
+| Pagina Report (`/Reports`) | nuova: tabella storica (Tabulator) di carico, autonomia residua e altre metriche per UPS, periodo a date libere e intervallo di campionamento in minuti; esportazione CSV. Riusa `MeasurementSeriesSampler` già esistente per i grafici dashboard. Il periodo (giorni di calendario nel fuso `Europe/Rome`) è convertito in UTC da `DisplayTimeFormatter.ToUtcStartOfDay`, nuovo metodo coerente col fix fuso orario di d93aa41 |
 | Verifica end-to-end reale | catena di attivazione LIVE completa (sincronizzazione, endpoint, kill switch) contro portale e PostgreSQL reali; ogni adapter contro sessioni/server programmabili o realmente in ascolto (Kestrel HTTPS con certificato autofirmato per Redfish, socket UDP reale per Wake-on-LAN) |
 | TLS del portale | corretto il sito Caddy da `:443` a `{$BIND_ADDRESS}:443`: la CA interna emette ora il certificato per l'IP LAN esplicito; Compose passa `BIND_ADDRESS` al proxy |
 | Interfaccia portale | restyling responsive “control room”: navigazione, dashboard, card UPS, metriche, tabelle e form; gli indicatori SignalR riflettono lo stato reale e non sono solo decorativi |

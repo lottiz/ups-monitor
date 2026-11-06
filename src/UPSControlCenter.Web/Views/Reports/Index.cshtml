@@ -1,0 +1,57 @@
+@{
+    ViewData["Title"] = "Report";
+    var upsList = (IEnumerable<dynamic>)ViewBag.UpsList;
+}
+
+<header class="page-heading">
+    <div>
+        <div class="eyebrow">Analisi storica</div>
+        <h1>Report carico e autonomia</h1>
+        <p>Scegli UPS, periodo e intervallo di campionamento per consultare l'andamento storico.</p>
+    </div>
+</header>
+
+<div class="card panel-card mb-3">
+    <div class="card-body">
+        <form id="reportFilters" class="row gy-2 gx-3 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label" for="reportUps">UPS</label>
+                <select class="form-select" id="reportUps" required>
+                    @foreach (var ups in upsList)
+                    {
+                        <option value="@ups.Id">@ups.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label" for="reportFrom">Da</label>
+                <input type="date" class="form-control" id="reportFrom" required />
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label" for="reportTo">A</label>
+                <input type="date" class="form-control" id="reportTo" required />
+            </div>
+            <div class="col-12 col-md-2">
+                <label class="form-label" for="reportInterval">Ogni (minuti)</label>
+                <input type="number" class="form-control" id="reportInterval" min="1" max="1440" value="5" required />
+            </div>
+            <div class="col-12 col-md-1 d-grid">
+                <button type="submit" class="btn btn-primary">Genera</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card panel-card">
+    <div class="card-header panel-header d-flex justify-content-between align-items-center">
+        <span><span class="section-kicker">Storico</span><span class="section-title">Misure</span></span>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="reportDownload">Scarica CSV</button>
+    </div>
+    <div class="card-body">
+        <div id="reportTable"></div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/js/reports.js"></script>
+}
