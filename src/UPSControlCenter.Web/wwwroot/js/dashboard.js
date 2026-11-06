@@ -98,7 +98,7 @@
         };
     }
 
-    function lineDataset(label, data, color, background) {
+    function lineDataset(label, data, color, background, yAxisId) {
         return {
             label: label,
             data: data,
@@ -109,8 +109,26 @@
             pointHoverRadius: 4,
             fill: true,
             tension: 0.28,
-            spanGaps: false
+            spanGaps: false,
+            yAxisID: yAxisId || 'y'
         };
+    }
+
+    /* Due assi indipendenti: le serie non condividono unità (minuti vs. percentuale) e
+       forzarle sulla stessa scala appiattirebbe una delle due. */
+    function dualAxisOptions(leftTitle, rightTitle) {
+        const options = lineOptions(leftTitle, 0);
+        options.scales.y.position = 'left';
+        options.scales.y1 = {
+            position: 'right',
+            suggestedMin: 0,
+            suggestedMax: 100,
+            beginAtZero: true,
+            grid: { display: false },
+            ticks: { color: '#758398' },
+            title: { display: true, text: rightTitle, color: '#66758a' }
+        };
+        return options;
     }
 
     function renderTrendCharts(data) {
@@ -139,22 +157,22 @@
             options: lineOptions('minuti', 0)
         });
 
-        const percentOptions = lineOptions('%', 0, 100);
-        percentOptions.scales.y.max = 100;
         capacityChart = new Chart(document.getElementById('capacityTrendChart'), {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [
-                    lineDataset('Batteria', data.map(function (point) {
-                        return point.batteryChargePercent;
-                    }), '#16a36a', 'rgba(22, 163, 106, 0.10)'),
-                    lineDataset('Carico', data.map(function (point) {
+                    lineDataset('Autonomia (min)', data.map(function (point) {
+                        return point.batteryRuntimeSeconds === null
+                            ? null
+                            : Math.round(point.batteryRuntimeSeconds / 60);
+                    }), '#0b91ae', 'rgba(24, 184, 217, 0.12)', 'y'),
+                    lineDataset('Carico (%)', data.map(function (point) {
                         return point.loadPercent;
-                    }), '#f08a24', 'rgba(240, 138, 36, 0.08)')
+                    }), '#f08a24', 'rgba(240, 138, 36, 0.08)', 'y1')
                 ]
             },
-            options: percentOptions
+            options: dualAxisOptions('minuti', '%')
         });
 
         voltageChart = new Chart(document.getElementById('voltageTrendChart'), {
