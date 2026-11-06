@@ -51,6 +51,7 @@
         <div class="metric-runtime"><span class="metric-label">Autonomia residua</span><span class="metric-value" data-role="runtime">@FmtRuntime(Model.BatteryRuntimeSeconds)</span></div>
         <div class="metric-load"><span class="metric-label">Carico</span><span class="metric-value" data-role="load">@Fmt(Model.LoadPercent, "%")</span></div>
         <div class="metric-power"><span class="metric-label">Potenza</span><span class="metric-value">@Fmt(Model.RealPowerWatts, "W")</span></div>
+        <div class="metric-current"><span class="metric-label">Corrente uscita</span><span class="metric-value" data-role="current">@Fmt(Model.OutputCurrentAmps, "A")</span></div>
         <div class="metric-voltage"><span class="metric-label">Tensione ingresso</span><span class="metric-value" data-role="vin">@Fmt(Model.InputVoltage, "V")</span></div>
         <div class="metric-voltage"><span class="metric-label">Tensione uscita</span><span class="metric-value">@Fmt(Model.OutputVoltage, "V")</span></div>
         <div class="metric-frequency"><span class="metric-label">Frequenza ingresso</span><span class="metric-value">@Fmt(Model.InputFrequency, "Hz")</span></div>

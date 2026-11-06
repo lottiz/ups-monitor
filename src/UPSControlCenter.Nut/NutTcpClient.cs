@@ -188,6 +188,8 @@ public sealed class NutTcpClient(IOptions<NutClientOptions> options, ILogger<Nut
             OutputFrequency = GetDecimal(vars, "output.frequency"),
             LoadPercent = GetDecimal(vars, "ups.load"),
             RealPowerWatts = GetDecimal(vars, "ups.realpower"),
+            OutputCurrentAmps = GetDecimal(vars, "output.current"),
+            InputCurrentAmps = GetDecimal(vars, "input.current"),
             Manufacturer = Get(vars, "ups.mfr"),
             Model = Get(vars, "ups.model"),
             Serial = Get(vars, "ups.serial"),

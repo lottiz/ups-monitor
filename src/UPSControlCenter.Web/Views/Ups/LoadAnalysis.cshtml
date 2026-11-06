@@ -1,0 +1,80 @@
+@model UPSControlCenter.Core.Entities.UpsDevice
+@{
+    ViewData["Title"] = "Analisi carico — " + Model.Name;
+}
+
+<header class="page-heading">
+    <div>
+        <div class="eyebrow">Analisi stanza per stanza</div>
+        <h1>Carico in tempo reale — @Model.Name</h1>
+        <p>Scollega i dispositivi uno alla volta e osserva la variazione di corrente.</p>
+    </div>
+</header>
+
+<div class="alert alert-info" role="alert">
+    Lascia tutto collegato e premi <strong>Segna lettura</strong> annotando "Tutto collegato".
+    Poi scollega un dispositivo alla volta: dopo ogni scollegamento aspetta che il valore si
+    stabilizzi (la pagina si aggiorna ogni pochi secondi) e premi di nuovo <strong>Segna
+    lettura</strong> indicando cosa hai scollegato. La colonna "Differenza" mostra quanto è
+    sceso l'assorbimento: è una stima dell'ultimo dispositivo scollegato.
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-12 col-md-4">
+        <div class="card panel-card h-100">
+            <div class="card-body text-center">
+                <div class="small text-body-secondary">Corrente uscita</div>
+                <div class="display-5 fw-semibold" id="liveCurrent">—</div>
+                <div class="small text-body-secondary" id="liveCurrentNote">&nbsp;</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card panel-card h-100">
+            <div class="card-body text-center">
+                <div class="small text-body-secondary">Potenza</div>
+                <div class="display-6" id="livePower">—</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card panel-card h-100">
+            <div class="card-body text-center">
+                <div class="small text-body-secondary">Carico</div>
+                <div class="display-6" id="liveLoad">—</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card panel-card mb-3">
+    <div class="card-body">
+        <form id="markForm" class="row gy-2 gx-3 align-items-end">
+            <div class="col-12 col-md-8">
+                <label class="form-label" for="markLabel">Cosa hai scollegato (o "Tutto collegato" per la prima riga)</label>
+                <input type="text" class="form-control" id="markLabel" placeholder="es. Lampada scrivania, camera 2" required />
+            </div>
+            <div class="col-12 col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">Segna lettura</button>
+            </div>
+            <div class="col-12 col-md-2 d-grid">
+                <button type="button" class="btn btn-outline-danger" id="clearLog">Pulisci registro</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card panel-card">
+    <div class="card-header panel-header d-flex justify-content-between align-items-center">
+        <span><span class="section-kicker">Registro</span><span class="section-title">Letture annotate</span></span>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="exportLog">Scarica CSV</button>
+    </div>
+    <div class="card-body">
+        <div id="markTable"></div>
+    </div>
+</div>
+
+@section Scripts {
+<script>window.UpsCcLoadAnalysis = { upsId: '@Model.Id' };</script>
+<script src="~/js/load-analysis.js"></script>
+}

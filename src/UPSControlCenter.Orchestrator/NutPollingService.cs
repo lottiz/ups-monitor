@@ -254,6 +254,8 @@ public sealed class NutPollingService(
             OutputFrequency = snapshot.OutputFrequency,
             LoadPercent = snapshot.LoadPercent,
             RealPowerWatts = snapshot.RealPowerWatts,
+            OutputCurrentAmps = snapshot.OutputCurrentAmps,
+            InputCurrentAmps = snapshot.InputCurrentAmps,
             PhaseDataJson = snapshot.PhaseData.Count > 0
                 ? System.Text.Json.JsonSerializer.Serialize(snapshot.PhaseData)
                 : null,

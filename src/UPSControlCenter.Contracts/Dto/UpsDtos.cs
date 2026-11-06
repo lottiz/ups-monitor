@@ -30,6 +30,8 @@ public sealed record UpsStatusDto
     public decimal? OutputFrequency { get; init; }
     public decimal? LoadPercent { get; init; }
     public decimal? RealPowerWatts { get; init; }
+    public decimal? OutputCurrentAmps { get; init; }
+    public decimal? InputCurrentAmps { get; init; }
 
     public IReadOnlyDictionary<string, string> PhaseData { get; init; } =
         new Dictionary<string, string>();

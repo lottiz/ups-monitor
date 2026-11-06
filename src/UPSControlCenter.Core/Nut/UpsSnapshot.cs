@@ -44,6 +44,14 @@ public sealed record UpsSnapshot
     public decimal? LoadPercent { get; init; }
     public decimal? RealPowerWatts { get; init; }
 
+    /// <summary>
+    /// Corrente in ampere riportata direttamente dal driver (<c>output.current</c>,
+    /// <c>input.current</c>). Non tutti i modelli la espongono: resta <c>null</c> in tal caso,
+    /// non viene mai stimata al posto del dato reale (§9.3).
+    /// </summary>
+    public decimal? OutputCurrentAmps { get; init; }
+    public decimal? InputCurrentAmps { get; init; }
+
     public string? Manufacturer { get; init; }
     public string? Model { get; init; }
     public string? Serial { get; init; }

@@ -57,6 +57,13 @@ public class UpsMeasurement
     public decimal? LoadPercent { get; set; }
     public decimal? RealPowerWatts { get; set; }
 
+    /// <summary>
+    /// Corrente in ampere (<c>output.current</c>/<c>input.current</c>), presente solo sui driver
+    /// che la espongono direttamente: non tutti i modelli la riportano (§9.2).
+    /// </summary>
+    public decimal? OutputCurrentAmps { get; set; }
+    public decimal? InputCurrentAmps { get; set; }
+
     /// <summary>Dati trifase serializzati in JSON, presenti solo se il driver li espone.</summary>
     public string? PhaseDataJson { get; set; }
 

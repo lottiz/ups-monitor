@@ -1791,6 +1791,10 @@ namespace UPSControlCenter.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(8,2)")
                         .HasColumnName("battery_voltage");
 
+                    b.Property<decimal?>("InputCurrentAmps")
+                        .HasColumnType("numeric")
+                        .HasColumnName("input_current_amps");
+
                     b.Property<decimal?>("InputFrequency")
                         .HasPrecision(6, 2)
                         .HasColumnType("numeric(6,2)")
@@ -1809,6 +1813,10 @@ namespace UPSControlCenter.Infrastructure.Persistence.Migrations
                         .HasPrecision(5, 2)
                         .HasColumnType("numeric(5,2)")
                         .HasColumnName("load_percent");
+
+                    b.Property<decimal?>("OutputCurrentAmps")
+                        .HasColumnType("numeric")
+                        .HasColumnName("output_current_amps");
 
                     b.Property<decimal?>("OutputFrequency")
                         .HasPrecision(6, 2)

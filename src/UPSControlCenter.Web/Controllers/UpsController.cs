@@ -33,6 +33,19 @@ public sealed class UpsController(
         return View(ups);
     }
 
+    /// <summary>
+    /// Lettura live della corrente per l'analisi stanza per stanza (§6): si scollegano i
+    /// dispositivi uno alla volta osservando la variazione di corrente, per stimarne
+    /// l'assorbimento individuale.
+    /// </summary>
+    public async Task<IActionResult> LoadAnalysis(Guid id, CancellationToken ct)
+    {
+        var ups = await db.UpsDevices.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, ct);
+        if (ups is null) return NotFound();
+
+        return View(ups);
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = Policies.ManageDevices)]

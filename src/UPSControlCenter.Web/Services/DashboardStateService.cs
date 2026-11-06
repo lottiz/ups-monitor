@@ -102,6 +102,8 @@ public sealed class DashboardStateService(
             OutputFrequency = latest.OutputFrequency,
             LoadPercent = latest.LoadPercent,
             RealPowerWatts = latest.RealPowerWatts,
+            OutputCurrentAmps = latest.OutputCurrentAmps,
+            InputCurrentAmps = latest.InputCurrentAmps,
             PhaseData = ParsePhaseData(latest.PhaseDataJson),
             LastCommunicationAt = latest.RecordedAt,
             NutConnected = !flags.IsUnknown() && !isStale,

@@ -352,6 +352,7 @@
         setRole('charge', window.UpsCc.formatNumber(ups.batteryChargePercent, '%'));
         setRole('runtime', window.UpsCc.formatDuration(ups.batteryRuntimeSeconds));
         setRole('load', window.UpsCc.formatNumber(ups.loadPercent, '%'));
+        setRole('current', window.UpsCc.formatNumber(ups.outputCurrentAmps, 'A'));
         setRole('vin', window.UpsCc.formatNumber(ups.inputVoltage, 'V'));
         setRole('last-comm', ups.lastCommunicationAt
             ? window.UpsCc.formatDateTime(ups.lastCommunicationAt) : 'mai');

@@ -19,6 +19,7 @@ public sealed class NutParsingTests
         "VAR riello output.voltage \"230.2\"",
         "VAR riello output.frequency \"50.0\"",
         "VAR riello ups.load \"23\"",
+        "VAR riello output.current \"1.8\"",
         "VAR riello ups.status \"OL\"",
         "VAR riello ups.mfr \"RPS S.p.a.\"",
         "VAR riello ups.model \"DS3MK10CS100RUA\"",
@@ -51,6 +52,7 @@ public sealed class NutParsingTests
         Assert.Equal(100m, snapshot.BatteryChargePercent);
         Assert.Equal(3540, snapshot.BatteryRuntimeSeconds);
         Assert.Equal(23m, snapshot.LoadPercent);
+        Assert.Equal(1.8m, snapshot.OutputCurrentAmps);
         Assert.True(snapshot.Status.IsOnLine());
     }
 
@@ -65,6 +67,7 @@ public sealed class NutParsingTests
         Assert.Null(snapshot.BatteryRuntimeSeconds);
         Assert.Null(snapshot.LoadPercent);
         Assert.Null(snapshot.InputVoltage);
+        Assert.Null(snapshot.OutputCurrentAmps);
         Assert.Null(snapshot.Manufacturer);
         Assert.True(snapshot.Status.IsOnBattery());
     }

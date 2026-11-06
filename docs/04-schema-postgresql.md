@@ -32,6 +32,7 @@ UQ `(nut_host, nut_port, nut_ups_name)` — impedisce due definizioni dello stes
 `battery_runtime_seconds int NULL`, `battery_voltage numeric(8,2) NULL`,
 `input_voltage / output_voltage / input_frequency / output_frequency numeric NULL`,
 `load_percent numeric(5,2) NULL`, `real_power_watts numeric NULL`,
+`output_current_amps / input_current_amps numeric NULL` (solo se il driver li espone),
 `phase_data jsonb NULL` (dati trifase quando presenti), `is_stale bool`, `source text`.
 
 > **Tutte le metriche sono nullable per progetto.** `NULL` significa "non fornito da NUT" e

@@ -27,6 +27,9 @@ resta obbligatoriamente in `DRY_RUN`. La Fase 3 è completata, con un solo gap d
 | Interfaccia portale | restyling responsive “control room”: navigazione, dashboard, card UPS, metriche, tabelle e form; gli indicatori SignalR riflettono lo stato reale e non sono solo decorativi |
 | Orari interfaccia | conversione esplicita da UTC a `Europe/Rome`, coerente tra rendering Razor e aggiornamenti JavaScript; ora solare/legale applicata automaticamente |
 | Dashboard energetica | trend responsive per autonomia, batteria/carico e tensioni; distribuzione infrastruttura; serie browser campionate ogni 20 minuti senza rallentare il polling NUT |
+| Grafico "Autonomia e carico" | la card dashboard ex "Batteria e carico" mostra ora autonomia (minuti, asse sinistro) e carico (%, asse destro) su doppio asse, per leggere quanta autonomia resta a un dato carico |
+| Corrente in ampere (`output.current`/`input.current`) | nuovi campi nullable su `UpsSnapshot`/`UpsMeasurement`/`UpsStatusDto` (migrazione `AddUpsCurrentAmps`), popolati solo se il driver NUT li espone — mai stimati lato server (§9.3) |
+| Pagina Analisi carico (`/Ups/LoadAnalysis/{id}`) | lettura live della corrente (reale se disponibile, altrimenti stimata client-side da potenza÷tensione ed esplicitamente etichettata "stimata") via SignalR esistente; registro di letture annotate manualmente (localStorage, per UPS) con colonna differenza, per isolare l'assorbimento di un dispositivo scollegandolo e confrontando la lettura prima/dopo; esportazione CSV. Linkata dalla pagina Dettagli UPS |
 
 ## Restyling interfaccia
 
