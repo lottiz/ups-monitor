@@ -77,12 +77,19 @@
         if (automation.automationDisabled) {
             badge.className = 'badge mode-pill text-bg-danger';
             badge.textContent = 'Automazioni disabilitate';
-        } else if (automation.executionMode === 'DryRun' || automation.executionMode === 0) {
+        } else if (automation.executionMode === 'DryRun' ||
+                   automation.executionMode === 'DRY_RUN' ||
+                   automation.executionMode === 0) {
             badge.className = 'badge mode-pill text-bg-info';
             badge.textContent = 'Modalità: DRY_RUN';
-        } else {
+        } else if (automation.executionMode === 'Live' ||
+                   automation.executionMode === 'LIVE' ||
+                   automation.executionMode === 1) {
             badge.className = 'badge mode-pill text-bg-warning';
             badge.textContent = 'Modalità: LIVE';
+        } else {
+            badge.className = 'badge mode-pill text-bg-secondary';
+            badge.textContent = 'Modalità: non determinata';
         }
     };
 

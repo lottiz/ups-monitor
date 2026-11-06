@@ -52,11 +52,17 @@
         if (stateDot) { stateDot.className = 'connection-dot connection-' + state; }
     }
 
+    function executionModeLabel(mode) {
+        if (mode === 0 || mode === 'DryRun' || mode === 'DRY_RUN') { return 'DRY_RUN'; }
+        if (mode === 1 || mode === 'Live' || mode === 'LIVE') { return 'LIVE'; }
+        return 'non determinata';
+    }
+
     connection.on('AutomationStatusChanged', function (automation) {
         window.UpsCc.updateModeBadge(automation);
 
         setText('autoMode', automation.automationDisabled
-            ? 'Disabilitata' : automation.executionMode);
+            ? 'Disabilitata' : executionModeLabel(automation.executionMode));
         setText('autoOrchestrator', automation.orchestratorState);
         setText('autoAgent', automation.safetyAgentState);
         setText('autoOrchestratorHb', automation.orchestratorLastHeartbeat

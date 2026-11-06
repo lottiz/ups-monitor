@@ -68,7 +68,9 @@ else
             <div class="card-body">
                 <dl class="row mb-0 small" id="automationPanel">
                     <dt class="col-7">Modalità</dt>
-                    <dd class="col-5" id="autoMode">@Model.Automation.ExecutionMode</dd>
+                    <dd class="col-5" id="autoMode">
+                        @(Model.Automation.ExecutionMode == ExecutionMode.DryRun ? "DRY_RUN" : "LIVE")
+                    </dd>
 
                     <dt class="col-7">Orchestratore</dt>
                     <dd class="col-5" id="autoOrchestrator">@Model.Automation.OrchestratorState</dd>

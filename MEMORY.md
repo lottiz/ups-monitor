@@ -34,6 +34,11 @@ rimangono locali e compatibili con la CSP esistente; nessuna dipendenza web o fo
 Verifiche: build completa **0 warning / 0 errori**; test .NET **199 passati, 13 saltati**
 (PostgreSQL non disponibile); `git diff --check` pulito.
 
+Correzione successiva alla verifica visiva: SignalR serializza `ExecutionMode` come numero;
+la dashboard mostrava quindi `0`. La UI mappa ora esplicitamente `0`/`DryRun` a `DRY_RUN` e
+`1`/`Live` a `LIVE`; un valore sconosciuto resta “non determinata” e non viene mai scambiato
+per LIVE.
+
 ## Ultima correzione di deploy — TLS su IP LAN
 
 Al primo avvio reale Caddy partiva e generava la CA, ma il sito senza host esplicito non aveva
