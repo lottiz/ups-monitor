@@ -10,6 +10,8 @@ COPY src/UPSControlCenter.Contracts/*.csproj src/UPSControlCenter.Contracts/
 COPY src/UPSControlCenter.Nut/*.csproj src/UPSControlCenter.Nut/
 COPY src/UPSControlCenter.Infrastructure/*.csproj src/UPSControlCenter.Infrastructure/
 COPY src/UPSControlCenter.Notifications/*.csproj src/UPSControlCenter.Notifications/
+COPY src/UPSControlCenter.Adapters/*.csproj src/UPSControlCenter.Adapters/
+COPY src/UPSControlCenter.Adapters.Live/*.csproj src/UPSControlCenter.Adapters.Live/
 COPY src/UPSControlCenter.Orchestrator/*.csproj src/UPSControlCenter.Orchestrator/
 
 RUN dotnet restore src/UPSControlCenter.Orchestrator/UPSControlCenter.Orchestrator.csproj

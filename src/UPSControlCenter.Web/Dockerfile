@@ -12,6 +12,8 @@ COPY src/UPSControlCenter.Nut/*.csproj src/UPSControlCenter.Nut/
 COPY src/UPSControlCenter.Infrastructure/*.csproj src/UPSControlCenter.Infrastructure/
 COPY src/UPSControlCenter.Notifications/*.csproj src/UPSControlCenter.Notifications/
 COPY src/UPSControlCenter.Simulator/*.csproj src/UPSControlCenter.Simulator/
+COPY src/UPSControlCenter.Adapters/*.csproj src/UPSControlCenter.Adapters/
+COPY src/UPSControlCenter.Adapters.Live/*.csproj src/UPSControlCenter.Adapters.Live/
 COPY src/UPSControlCenter.Web/*.csproj src/UPSControlCenter.Web/
 
 RUN dotnet restore src/UPSControlCenter.Web/UPSControlCenter.Web.csproj
