@@ -284,11 +284,22 @@ services:
 networks:
   # internal: true ⇒ nessun gateway verso l'esterno. Il database non può essere raggiunto
   # dalla rete aziendale né raggiungerla (§6.2).
+  #
+  # Sottoreti fissate esplicitamente (non lasciate a Docker): una regola UFW per permettere
+  # a ups-orchestrator di raggiungere NUT sull'host deve riferirsi a un indirizzo stabile,
+  # non a una sottorete assegnata dinamicamente che cambia a ogni "docker compose create"
+  # (scoperto durante il primo deploy reale: 172.18 → 172.19 → 172.20 in pochi minuti).
   ups-internal:
     driver: bridge
     internal: true
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
   ups-edge:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/24
 
 volumes:
   ups-db-data:
