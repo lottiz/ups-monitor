@@ -10,12 +10,31 @@
     const liveCurrentNoteEl = document.getElementById('liveCurrentNote');
     const livePowerEl = document.getElementById('livePower');
     const liveLoadEl = document.getElementById('liveLoad');
+    const liveUpdatedAgoEl = document.getElementById('liveUpdatedAgo');
+    const connDot = document.getElementById('liveConnDot');
+    const connStateEl = document.getElementById('liveConnState');
     const markForm = document.getElementById('markForm');
     const markLabelInput = document.getElementById('markLabel');
 
     // Null finché non arriva una lettura: non si marca nulla basandosi su un valore inventato.
     let lastKnownCurrent = null;
     let lastKnownIsEstimate = false;
+    let lastUpdateAt = null;
+
+    function setConnState(text, state) {
+        connStateEl.textContent = text;
+        connDot.className = 'connection-dot connection-' + state;
+    }
+
+    // Il ciclo di diffusione lato server gira ogni 5s a prescindere da quando è arrivata
+    // l'ultima lettura NUT: mostrare "quanto fa" rende chiaro se il dato è ancora vivo o se
+    // il flusso si è fermato, invece di lasciare un numero statico che sembra sempre attuale.
+    function tickUpdatedAgo() {
+        if (lastUpdateAt === null) { return; }
+        const seconds = Math.max(0, Math.round((Date.now() - lastUpdateAt) / 1000));
+        liveUpdatedAgoEl.textContent = seconds <= 1 ? 'adesso' : seconds + ' secondi fa';
+    }
+    setInterval(tickUpdatedAgo, 1000);
 
     function loadEntries() {
         try {
@@ -61,6 +80,9 @@
 
     function updateLiveReadout(status) {
         if (!status) { return; }
+
+        lastUpdateAt = Date.now();
+        tickUpdatedAgo();
 
         if (status.outputCurrentAmps !== null && status.outputCurrentAmps !== undefined) {
             lastKnownCurrent = status.outputCurrentAmps;
@@ -110,7 +132,19 @@
             if (status.id === upsId) { updateLiveReadout(status); }
         });
 
-        connection.start().catch(function () { /* la pagina resta sul primo valore letto */ });
+        connection.onreconnecting(function () {
+            setConnState('Riconnessione in corso…', 'wait');
+        });
+        connection.onreconnected(function () {
+            setConnState('Connessione in tempo reale attiva', 'on');
+        });
+        connection.onclose(function () {
+            setConnState('Connessione in tempo reale interrotta', 'off');
+        });
+
+        connection.start()
+            .then(function () { setConnState('Connessione in tempo reale attiva', 'on'); })
+            .catch(function () { setConnState('Connessione in tempo reale non riuscita', 'off'); });
     }
 
     markForm.addEventListener('submit', function (event) {
