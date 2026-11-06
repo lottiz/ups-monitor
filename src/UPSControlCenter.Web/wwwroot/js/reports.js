@@ -49,6 +49,10 @@
                 title: 'Tensione uscita', field: 'outputVoltage', width: 140,
                 formatter: cell => window.UpsCc.formatNumber(cell.getValue(), 'V')
             },
+            {
+                title: 'Corrente', field: 'outputCurrentAmps', width: 110,
+                formatter: cell => window.UpsCc.formatNumber(cell.getValue(), 'A')
+            },
             { title: 'Stato', field: 'statusRaw', minWidth: 120 },
             {
                 title: 'Obsoleto', field: 'isStale', width: 100,
@@ -60,17 +64,22 @@
     const summaryBox = document.getElementById('reportSummary');
     const avgLoadEl = document.getElementById('reportAvgLoad');
     const avgRuntimeEl = document.getElementById('reportAvgRuntime');
+    const avgCurrentEl = document.getElementById('reportAvgCurrent');
     const sampleCountEl = document.getElementById('reportSampleCount');
+    const chartCard = document.getElementById('reportChartCard');
+    let reportChart = null;
 
     function periodParams() {
         return { upsId: upsSelect.value, from: fromInput.value, to: toInput.value };
     }
 
-    function buildQuery() {
+    async function loadRows() {
         const params = new URLSearchParams(Object.assign(periodParams(), {
             sampleMinutes: intervalInput.value
         }));
-        return '/Reports/List?' + params.toString();
+        const response = await fetch('/Reports/List?' + params.toString());
+        if (!response.ok) { throw new Error('HTTP ' + response.status); }
+        return response.json();
     }
 
     async function loadSummary() {
@@ -82,8 +91,58 @@
         avgLoadEl.textContent = window.UpsCc.formatNumber(summary.avgLoadPercent, '%');
         avgRuntimeEl.textContent = window.UpsCc.formatDuration(
             summary.avgBatteryRuntimeSeconds === null ? null : Math.round(summary.avgBatteryRuntimeSeconds));
+        avgCurrentEl.textContent = window.UpsCc.formatNumber(summary.avgOutputCurrentAmps, 'A');
         sampleCountEl.textContent = summary.sampleCount;
         summaryBox.classList.remove('d-none');
+    }
+
+    function renderChart(rows) {
+        if (typeof Chart === 'undefined') { return; }
+
+        if (reportChart) { reportChart.destroy(); }
+
+        if (rows.length === 0) {
+            chartCard.classList.add('d-none');
+            return;
+        }
+        chartCard.classList.remove('d-none');
+
+        const labels = rows.map(r => window.UpsCc.formatDateTime(r.recordedAt));
+
+        reportChart = new Chart(document.getElementById('reportChart'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Corrente (A)',
+                        data: rows.map(r => r.outputCurrentAmps),
+                        borderColor: '#0b91ae',
+                        backgroundColor: 'rgba(24, 184, 217, 0.12)',
+                        borderWidth: 2, pointRadius: 0, fill: true, tension: 0.25,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Carico (%)',
+                        data: rows.map(r => r.loadPercent),
+                        borderColor: '#f08a24',
+                        backgroundColor: 'rgba(240, 138, 36, 0.08)',
+                        borderWidth: 2, pointRadius: 0, fill: true, tension: 0.25,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    x: { ticks: { maxTicksLimit: 10, maxRotation: 0 } },
+                    y: { position: 'left', beginAtZero: true, title: { display: true, text: 'A' } },
+                    y1: { position: 'right', beginAtZero: true, max: 100, grid: { display: false }, title: { display: true, text: '%' } }
+                }
+            }
+        });
     }
 
     form.addEventListener('submit', async function (event) {
@@ -99,7 +158,9 @@
         }
 
         try {
-            await table.setData(buildQuery());
+            const rows = await loadRows();
+            table.setData(rows);
+            renderChart(rows);
             await loadSummary();
         } catch (e) {
             window.UpsCc.toast('Impossibile caricare il report.', 'danger');

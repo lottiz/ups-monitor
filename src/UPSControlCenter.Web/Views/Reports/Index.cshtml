@@ -62,10 +62,27 @@
     <div class="col-6 col-md-3">
         <div class="card panel-card h-100">
             <div class="card-body">
+                <div class="small text-body-secondary">Corrente media</div>
+                <div class="fs-4" id="reportAvgCurrent">—</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card panel-card h-100">
+            <div class="card-body">
                 <div class="small text-body-secondary">Letture nel periodo</div>
                 <div class="fs-4" id="reportSampleCount">—</div>
             </div>
         </div>
+    </div>
+</div>
+
+<div class="card panel-card mb-3 d-none" id="reportChartCard">
+    <div class="card-header panel-header">
+        <span><span class="section-kicker">Andamento</span><span class="section-title">Corrente e carico nel periodo</span></span>
+    </div>
+    <div class="card-body">
+        <div class="chart-shell"><canvas id="reportChart" role="img" aria-label="Grafico della corrente e del carico nel periodo selezionato"></canvas></div>
     </div>
 </div>
 
@@ -80,5 +97,6 @@
 </div>
 
 @section Scripts {
+<script src="~/lib/chartjs/chart.umd.min.js"></script>
 <script src="~/js/reports.js"></script>
 }

@@ -58,6 +58,7 @@ public sealed class DashboardApiController(
                 LoadPercent = m.LoadPercent,
                 InputVoltage = m.InputVoltage,
                 OutputVoltage = m.OutputVoltage,
+                OutputCurrentAmps = m.OutputCurrentAmps,
                 StatusRaw = m.StatusRaw,
                 IsStale = m.IsStale
             })

@@ -53,6 +53,7 @@ public sealed class ReportsController(UpsDbContext db, DisplayTimeFormatter disp
                 LoadPercent = m.LoadPercent,
                 InputVoltage = m.InputVoltage,
                 OutputVoltage = m.OutputVoltage,
+                OutputCurrentAmps = m.OutputCurrentAmps,
                 StatusRaw = m.StatusRaw,
                 IsStale = m.IsStale
             })
@@ -64,7 +65,7 @@ public sealed class ReportsController(UpsDbContext db, DisplayTimeFormatter disp
     }
 
     /// <summary>
-    /// Media di carico e autonomia residua nel periodo, calcolata sulle letture grezze (non sul
+    /// Media di carico, autonomia residua e corrente nel periodo, calcolata sulle letture grezze (non sul
     /// campione mostrato in tabella) perché il campionamento tiene solo l'ultima lettura di ogni
     /// finestra e falserebbe la media su periodi lunghi. I valori assenti (§9.3) sono esclusi,
     /// non trattati come zero: <c>AVG</c> in SQL li ignora già di per sé.
@@ -84,12 +85,14 @@ public sealed class ReportsController(UpsDbContext db, DisplayTimeFormatter disp
 
         var avgLoadPercent = await query.Select(m => m.LoadPercent).AverageAsync(ct);
         var avgBatteryRuntimeSeconds = await query.Select(m => (double?)m.BatteryRuntimeSeconds).AverageAsync(ct);
+        var avgOutputCurrentAmps = await query.Select(m => m.OutputCurrentAmps).AverageAsync(ct);
         var sampleCount = await query.CountAsync(ct);
 
         return Json(new
         {
             avgLoadPercent,
             avgBatteryRuntimeSeconds,
+            avgOutputCurrentAmps,
             sampleCount
         });
     }

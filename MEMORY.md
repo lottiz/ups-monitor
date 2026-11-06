@@ -30,6 +30,8 @@ resta obbligatoriamente in `DRY_RUN`. La Fase 3 è completata, con un solo gap d
 | Grafico "Autonomia e carico" | la card dashboard ex "Batteria e carico" mostra ora autonomia (minuti, asse sinistro) e carico (%, asse destro) su doppio asse, per leggere quanta autonomia resta a un dato carico |
 | Corrente in ampere (`output.current`/`input.current`) | nuovi campi nullable su `UpsSnapshot`/`UpsMeasurement`/`UpsStatusDto` (migrazione `AddUpsCurrentAmps`), popolati solo se il driver NUT li espone — mai stimati lato server (§9.3) |
 | Pagina Analisi carico (`/Ups/LoadAnalysis/{id}`) | lettura live della corrente (reale se disponibile, altrimenti stimata client-side da potenza÷tensione ed esplicitamente etichettata "stimata") via SignalR esistente; registro di letture annotate manualmente (localStorage, per UPS) con colonna differenza, per isolare l'assorbimento di un dispositivo scollegandolo e confrontando la lettura prima/dopo; esportazione CSV. Linkata dalla pagina Dettagli UPS |
+| Corrente nei dati storici | `OutputCurrentAmps` aggiunto a `UpsMeasurementHistoryDto` (DTO condiviso da grafici dashboard e Report): colonna "Corrente" e media nel Report, nuova card grafico "Corrente" nella Dashboard (doppio asse A/% nel grafico del Report insieme al carico) |
+| **Nota per il deploy** | `ups-web` NON applica le migrazioni da solo: va sempre eseguito `docker compose run --rm ups-migrate` dopo un rebuild che include modifiche allo schema (es. migrazione `AddUpsCurrentAmps`), altrimenti il portale va in errore generico perché interroga colonne che non esistono ancora |
 
 ## Restyling interfaccia
 

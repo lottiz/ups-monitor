@@ -149,6 +149,7 @@ a:hover { color: #055d75; }
 .chart-card-runtime { background: linear-gradient(150deg, rgba(222, 248, 253, 0.55), #fff 38%); }
 .chart-card-capacity { background: linear-gradient(150deg, rgba(228, 249, 238, 0.6), #fff 38%); }
 .chart-card-voltage { background: linear-gradient(150deg, rgba(238, 234, 255, 0.58), #fff 38%); }
+.chart-card-current { background: linear-gradient(150deg, rgba(255, 244, 214, 0.65), #fff 40%); }
 .chart-card-infra { background: linear-gradient(150deg, rgba(255, 240, 226, 0.65), #fff 40%); }
 .chart-copy { display: flex; align-items: center; gap: 0.72rem; margin-bottom: 0.8rem; }
 .chart-copy h2 { margin: 0; color: #1c2a3e; font-size: 0.93rem; font-weight: 760; }

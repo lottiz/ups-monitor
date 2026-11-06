@@ -44,6 +44,7 @@
     let runtimeChart = null;
     let capacityChart = null;
     let voltageChart = null;
+    let currentChart = null;
     let infrastructureChart = null;
 
     const connection = new signalR.HubConnectionBuilder()
@@ -139,6 +140,7 @@
         destroyChart(runtimeChart);
         destroyChart(capacityChart);
         destroyChart(voltageChart);
+        destroyChart(currentChart);
 
         runtimeChart = new Chart(document.getElementById('runtimeTrendChart'), {
             type: 'line',
@@ -190,6 +192,19 @@
             },
             options: lineOptions('volt')
         });
+
+        currentChart = new Chart(document.getElementById('currentTrendChart'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [lineDataset(
+                    'Corrente (A)',
+                    data.map(function (point) { return point.outputCurrentAmps; }),
+                    '#c8870b',
+                    'rgba(200, 135, 11, 0.12)')]
+            },
+            options: lineOptions('A', 0)
+        });
     }
 
     function loadTrendCharts() {
@@ -210,7 +225,8 @@
                     destroyChart(runtimeChart);
                     destroyChart(capacityChart);
                     destroyChart(voltageChart);
-                    runtimeChart = capacityChart = voltageChart = null;
+                    destroyChart(currentChart);
+                    runtimeChart = capacityChart = voltageChart = currentChart = null;
                     if (trendCharts) { trendCharts.classList.add('d-none'); }
                     if (trendEmpty) { trendEmpty.classList.remove('d-none'); }
                     return;

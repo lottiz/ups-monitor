@@ -53,6 +53,7 @@ public sealed record UpsMeasurementHistoryDto
     public decimal? LoadPercent { get; init; }
     public decimal? InputVoltage { get; init; }
     public decimal? OutputVoltage { get; init; }
+    public decimal? OutputCurrentAmps { get; init; }
     public string? StatusRaw { get; init; }
     public bool IsStale { get; init; }
 }
