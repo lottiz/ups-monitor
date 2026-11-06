@@ -57,14 +57,33 @@
         ]
     });
 
+    const summaryBox = document.getElementById('reportSummary');
+    const avgLoadEl = document.getElementById('reportAvgLoad');
+    const avgRuntimeEl = document.getElementById('reportAvgRuntime');
+    const sampleCountEl = document.getElementById('reportSampleCount');
+
+    function periodParams() {
+        return { upsId: upsSelect.value, from: fromInput.value, to: toInput.value };
+    }
+
     function buildQuery() {
-        const params = new URLSearchParams({
-            upsId: upsSelect.value,
-            from: fromInput.value,
-            to: toInput.value,
+        const params = new URLSearchParams(Object.assign(periodParams(), {
             sampleMinutes: intervalInput.value
-        });
+        }));
         return '/Reports/List?' + params.toString();
+    }
+
+    async function loadSummary() {
+        const params = new URLSearchParams(periodParams());
+        const response = await fetch('/Reports/Summary?' + params.toString());
+        if (!response.ok) { throw new Error('HTTP ' + response.status); }
+        const summary = await response.json();
+
+        avgLoadEl.textContent = window.UpsCc.formatNumber(summary.avgLoadPercent, '%');
+        avgRuntimeEl.textContent = window.UpsCc.formatDuration(
+            summary.avgBatteryRuntimeSeconds === null ? null : Math.round(summary.avgBatteryRuntimeSeconds));
+        sampleCountEl.textContent = summary.sampleCount;
+        summaryBox.classList.remove('d-none');
     }
 
     form.addEventListener('submit', async function (event) {
@@ -81,6 +100,7 @@
 
         try {
             await table.setData(buildQuery());
+            await loadSummary();
         } catch (e) {
             window.UpsCc.toast('Impossibile caricare il report.', 'danger');
         }

@@ -38,12 +38,7 @@ public sealed class ReportsController(UpsDbContext db, DisplayTimeFormatter disp
         if (upsId == Guid.Empty || to < from)
             return BadRequest(new { message = "Periodo non valido." });
 
-        var fromUtc = displayTime.ToUtcStartOfDay(from);
-        var toUtc = displayTime.ToUtcStartOfDay(to.AddDays(1));
-
-        var earliestAllowed = toUtc.AddDays(-90);
-        if (fromUtc < earliestAllowed) fromUtc = earliestAllowed;
-
+        var (fromUtc, toUtc) = ClampedPeriod(from, to);
         var clampedSampleMinutes = Math.Clamp(sampleMinutes, 1, 24 * 60);
 
         var readings = await db.UpsMeasurements
@@ -66,5 +61,47 @@ public sealed class ReportsController(UpsDbContext db, DisplayTimeFormatter disp
         var sampled = MeasurementSeriesSampler.Sample(readings, TimeSpan.FromMinutes(clampedSampleMinutes));
 
         return Json(sampled);
+    }
+
+    /// <summary>
+    /// Media di carico e autonomia residua nel periodo, calcolata sulle letture grezze (non sul
+    /// campione mostrato in tabella) perché il campionamento tiene solo l'ultima lettura di ogni
+    /// finestra e falserebbe la media su periodi lunghi. I valori assenti (§9.3) sono esclusi,
+    /// non trattati come zero: <c>AVG</c> in SQL li ignora già di per sé.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Summary(Guid upsId, DateOnly from, DateOnly to,
+        CancellationToken ct = default)
+    {
+        if (upsId == Guid.Empty || to < from)
+            return BadRequest(new { message = "Periodo non valido." });
+
+        var (fromUtc, toUtc) = ClampedPeriod(from, to);
+
+        var query = db.UpsMeasurements
+            .AsNoTracking()
+            .Where(m => m.UpsDeviceId == upsId && m.RecordedAt >= fromUtc && m.RecordedAt < toUtc);
+
+        var avgLoadPercent = await query.Select(m => m.LoadPercent).AverageAsync(ct);
+        var avgBatteryRuntimeSeconds = await query.Select(m => (double?)m.BatteryRuntimeSeconds).AverageAsync(ct);
+        var sampleCount = await query.CountAsync(ct);
+
+        return Json(new
+        {
+            avgLoadPercent,
+            avgBatteryRuntimeSeconds,
+            sampleCount
+        });
+    }
+
+    private (DateTimeOffset FromUtc, DateTimeOffset ToUtc) ClampedPeriod(DateOnly from, DateOnly to)
+    {
+        var fromUtc = displayTime.ToUtcStartOfDay(from);
+        var toUtc = displayTime.ToUtcStartOfDay(to.AddDays(1));
+
+        var earliestAllowed = toUtc.AddDays(-90);
+        if (fromUtc < earliestAllowed) fromUtc = earliestAllowed;
+
+        return (fromUtc, toUtc);
     }
 }
