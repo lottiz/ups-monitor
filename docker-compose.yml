@@ -163,7 +163,11 @@ services:
     volumes:
       - ${HOST_STATE_DIR:-/var/lib/ups-control-center}:/var/lib/ups-control-center:ro
     networks:
+      # ups-internal per il database, ups-edge per raggiungere NUT sull'host: ups-internal ha
+      # internal:true (nessuna via d'uscita, per isolare il database, §6.2) e da sola
+      # impedirebbe anche il poll di NUT, non solo l'accesso a Internet.
       - ups-internal
+      - ups-edge
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

@@ -464,7 +464,10 @@ step_nut_connectivity() {
     fi
 
     local network
-    network="$(compose_network_name ups-internal "$PROJECT_NAME")"
+    # ups-edge, non ups-internal: è la rete con cui ups-orchestrator raggiunge davvero NUT
+    # sull'host (ups-internal ha internal:true, isola anche il database, §6.2 — usarla qui
+    # darebbe un falso negativo identico al bug reale corretto in docker-compose.yml).
+    network="$(compose_network_name ups-edge "$PROJECT_NAME")"
     if [[ -z "$network" ]]; then
         warn "Non riesco a determinare il nome della rete Docker del progetto: salto il test automatico."
         warn "Verificare manualmente: upsc ${nut_host:-<ups>}@${nut_port:-<porta>}"

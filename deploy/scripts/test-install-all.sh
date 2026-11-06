@@ -181,16 +181,16 @@ docker() {
     case "$1" in
         network)
             case "$2" in
-                ls) echo "ups-control-center_ups-internal" ;;
+                ls) echo "ups-control-center_ups-edge" ;;
                 inspect) echo "192.168.200.1" ;;
             esac
             ;;
     esac
 }
-assert_eq "nome rete rilevato dalle etichette compose" "ups-control-center_ups-internal" \
-    "$(compose_network_name ups-internal ups-control-center)"
+assert_eq "nome rete rilevato dalle etichette compose" "ups-control-center_ups-edge" \
+    "$(compose_network_name ups-edge ups-control-center)"
 assert_eq "gateway rilevato dinamicamente (non 172.17.0.1 fisso)" "192.168.200.1" \
-    "$(docker_network_gateway ups-control-center_ups-internal)"
+    "$(docker_network_gateway ups-control-center_ups-edge)"
 unset -f docker
 
 echo
