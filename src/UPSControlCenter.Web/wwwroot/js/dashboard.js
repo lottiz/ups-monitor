@@ -5,19 +5,20 @@
     const eventsTable = new Tabulator('#eventsTable', {
         ajaxURL: '/api/dashboard/events?limit=200',
         layout: 'fitColumns',
+        responsiveLayout: 'collapse',
         pagination: true,
         paginationSize: 15,
         placeholder: 'Nessun evento registrato.',
         columns: [
             {
-                title: 'Data e ora', field: 'occurredAt', width: 180,
+                title: 'Data e ora', field: 'occurredAt', width: 180, responsive: 0,
                 formatter: function (cell) {
                     return window.UpsCc.formatDateTime(cell.getValue());
                 }
             },
-            { title: 'Tipo', field: 'eventType', headerFilter: 'input' },
+            { title: 'Tipo', field: 'eventType', headerFilter: 'input', responsive: 0 },
             {
-                title: 'Gravità', field: 'severity', width: 130, headerFilter: 'list',
+                title: 'Gravità', field: 'severity', width: 130, headerFilter: 'list', responsive: 1,
                 headerFilterParams: { values: ['Information', 'Warning', 'Critical'] },
                 formatter: function (cell) {
                     const v = cell.getValue();
@@ -25,9 +26,9 @@
                     return '<span class="badge text-bg-' + cls + '">' + v + '</span>';
                 }
             },
-            { title: 'Stato UPS', field: 'newStatus', width: 140 },
-            { title: 'Blackout', field: 'blackoutId', headerFilter: 'input' },
-            { title: 'Rilevato da', field: 'detectedBy', width: 140 }
+            { title: 'Stato UPS', field: 'newStatus', width: 140, responsive: 2 },
+            { title: 'Blackout', field: 'blackoutId', headerFilter: 'input', responsive: 4 },
+            { title: 'Rilevato da', field: 'detectedBy', width: 140, responsive: 3 }
         ]
     });
 
@@ -36,6 +37,14 @@
 
     const stateLabel = document.getElementById('connectionState');
     const stateDot = document.getElementById('connectionDot');
+    const trendUps = document.getElementById('trendUps');
+    const trendLoading = document.getElementById('trendLoading');
+    const trendCharts = document.getElementById('trendCharts');
+    const trendEmpty = document.getElementById('trendEmpty');
+    let runtimeChart = null;
+    let capacityChart = null;
+    let voltageChart = null;
+    let infrastructureChart = null;
 
     const connection = new signalR.HubConnectionBuilder()
         .withUrl('/hubs/dashboard')
@@ -56,6 +65,203 @@
         if (mode === 0 || mode === 'DryRun' || mode === 'DRY_RUN') { return 'DRY_RUN'; }
         if (mode === 1 || mode === 'Live' || mode === 'LIVE') { return 'LIVE'; }
         return 'non determinata';
+    }
+
+    function destroyChart(chart) {
+        if (chart) { chart.destroy(); }
+    }
+
+    function lineOptions(yTitle, suggestedMin, suggestedMax) {
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            animation: { duration: 350 },
+            plugins: {
+                legend: { labels: { usePointStyle: true, boxWidth: 8 } },
+                tooltip: { displayColors: true }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { maxTicksLimit: 8, color: '#758398', maxRotation: 0 }
+                },
+                y: {
+                    suggestedMin: suggestedMin,
+                    suggestedMax: suggestedMax,
+                    beginAtZero: suggestedMin === 0,
+                    grid: { color: 'rgba(133, 151, 175, 0.16)' },
+                    ticks: { color: '#758398' },
+                    title: { display: true, text: yTitle, color: '#66758a' }
+                }
+            }
+        };
+    }
+
+    function lineDataset(label, data, color, background) {
+        return {
+            label: label,
+            data: data,
+            borderColor: color,
+            backgroundColor: background,
+            borderWidth: 2.5,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            fill: true,
+            tension: 0.28,
+            spanGaps: false
+        };
+    }
+
+    function renderTrendCharts(data) {
+        const labels = data.map(function (point) {
+            return window.UpsCc.formatTimeShort(point.recordedAt);
+        });
+
+        destroyChart(runtimeChart);
+        destroyChart(capacityChart);
+        destroyChart(voltageChart);
+
+        runtimeChart = new Chart(document.getElementById('runtimeTrendChart'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [lineDataset(
+                    'Autonomia (min)',
+                    data.map(function (point) {
+                        return point.batteryRuntimeSeconds === null
+                            ? null
+                            : Math.round(point.batteryRuntimeSeconds / 60);
+                    }),
+                    '#0b91ae',
+                    'rgba(24, 184, 217, 0.15)')]
+            },
+            options: lineOptions('minuti', 0)
+        });
+
+        const percentOptions = lineOptions('%', 0, 100);
+        percentOptions.scales.y.max = 100;
+        capacityChart = new Chart(document.getElementById('capacityTrendChart'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    lineDataset('Batteria', data.map(function (point) {
+                        return point.batteryChargePercent;
+                    }), '#16a36a', 'rgba(22, 163, 106, 0.10)'),
+                    lineDataset('Carico', data.map(function (point) {
+                        return point.loadPercent;
+                    }), '#f08a24', 'rgba(240, 138, 36, 0.08)')
+                ]
+            },
+            options: percentOptions
+        });
+
+        voltageChart = new Chart(document.getElementById('voltageTrendChart'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    lineDataset('Ingresso', data.map(function (point) {
+                        return point.inputVoltage;
+                    }), '#6f55d9', 'rgba(111, 85, 217, 0.08)'),
+                    lineDataset('Uscita', data.map(function (point) {
+                        return point.outputVoltage;
+                    }), '#dd4c7c', 'rgba(221, 76, 124, 0.06)')
+                ]
+            },
+            options: lineOptions('volt')
+        });
+    }
+
+    function loadTrendCharts() {
+        if (!trendUps || typeof Chart === 'undefined') { return; }
+
+        if (trendLoading) { trendLoading.classList.remove('d-none'); }
+        if (trendCharts) { trendCharts.classList.add('trend-is-loading'); }
+        if (trendEmpty) { trendEmpty.classList.add('d-none'); }
+
+        fetch('/api/dashboard/measurements/' + encodeURIComponent(trendUps.value) +
+              '?hours=24&sampleMinutes=20')
+            .then(function (response) {
+                if (!response.ok) { throw new Error('HTTP ' + response.status); }
+                return response.json();
+            })
+            .then(function (data) {
+                if (!data.length) {
+                    destroyChart(runtimeChart);
+                    destroyChart(capacityChart);
+                    destroyChart(voltageChart);
+                    runtimeChart = capacityChart = voltageChart = null;
+                    if (trendCharts) { trendCharts.classList.add('d-none'); }
+                    if (trendEmpty) { trendEmpty.classList.remove('d-none'); }
+                    return;
+                }
+                if (trendCharts) { trendCharts.classList.remove('d-none'); }
+                renderTrendCharts(data);
+            })
+            .catch(function () {
+                if (trendCharts) { trendCharts.classList.add('d-none'); }
+                if (trendEmpty) {
+                    trendEmpty.textContent = 'Grafici temporaneamente non disponibili.';
+                    trendEmpty.classList.remove('d-none');
+                }
+            })
+            .finally(function () {
+                if (trendLoading) { trendLoading.classList.add('d-none'); }
+                if (trendCharts) { trendCharts.classList.remove('trend-is-loading'); }
+            });
+    }
+
+    function infrastructureValues() {
+        function value(id) {
+            const element = document.getElementById(id);
+            return element ? Number(element.textContent) || 0 : 0;
+        }
+        return [
+            value('infraOn'), value('infraOff'), value('infraShutting'),
+            value('infraStarting'), value('infraUnreachable'),
+            value('infraErrors'), value('infraUnknown')
+        ];
+    }
+
+    function updateInfrastructureChart() {
+        const canvas = document.getElementById('infrastructureChart');
+        if (!canvas || typeof Chart === 'undefined') { return; }
+
+        const values = infrastructureValues();
+        if (!infrastructureChart) {
+            infrastructureChart = new Chart(canvas, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Accesi', 'Spenti', 'In arresto', 'In avvio',
+                        'Non raggiungibili', 'Con errori', 'Ignoto'],
+                    datasets: [{
+                        data: values,
+                        backgroundColor: ['#20b77a', '#26364b', '#f0ad35', '#18b8d9',
+                            '#e98324', '#dc4862', '#8b98a8'],
+                        borderColor: '#ffffff',
+                        borderWidth: 3,
+                        hoverOffset: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '64%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { usePointStyle: true, boxWidth: 8, padding: 12 }
+                        }
+                    }
+                }
+            });
+            return;
+        }
+
+        infrastructureChart.data.datasets[0].data = values;
+        infrastructureChart.update();
     }
 
     connection.on('AutomationStatusChanged', function (automation) {
@@ -90,6 +296,7 @@
         setText('infraUnreachable', infra.devicesUnreachable);
         setText('infraErrors', infra.devicesWithErrors);
         setText('infraUnknown', infra.devicesUnknown);
+        updateInfrastructureChart();
     });
 
     connection.on('UpsStatusChanged', function (ups) {
@@ -152,6 +359,14 @@
             setConnectionState('Connessione in tempo reale: non disponibile', 'off');
             console.error('SignalR non disponibile', err);
         });
+
+    if (trendUps) {
+        trendUps.addEventListener('change', loadTrendCharts);
+        loadTrendCharts();
+        // Il campione visivo ha cadenza venti minuti; le card sopra restano live via SignalR.
+        setInterval(loadTrendCharts, 20 * 60 * 1000);
+    }
+    updateInfrastructureChart();
 
     // Riaccensioni in attesa di approvazione manuale (§12).
     function loadPendingStartups() {

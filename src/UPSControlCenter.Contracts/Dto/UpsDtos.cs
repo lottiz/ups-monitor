@@ -42,6 +42,19 @@ public sealed record UpsStatusDto
     public required bool IsStale { get; init; }
 }
 
+/// <summary>Punto storico alleggerito per i grafici del portale.</summary>
+public sealed record UpsMeasurementHistoryDto
+{
+    public DateTimeOffset RecordedAt { get; init; }
+    public decimal? BatteryChargePercent { get; init; }
+    public int? BatteryRuntimeSeconds { get; init; }
+    public decimal? LoadPercent { get; init; }
+    public decimal? InputVoltage { get; init; }
+    public decimal? OutputVoltage { get; init; }
+    public string? StatusRaw { get; init; }
+    public bool IsStale { get; init; }
+}
+
 public sealed record InfrastructureStatusDto
 {
     public required int TotalDevices { get; init; }

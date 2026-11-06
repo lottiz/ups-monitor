@@ -122,13 +122,40 @@ a:hover { color: #055d75; }
 .ups-status-card::before { position: absolute; top: 0; bottom: 0; left: 0; width: 3px; content: ""; background: linear-gradient(180deg, var(--ucc-cyan-400), #177897); }
 .ups-status-card:hover { transform: translateY(-1px); border-color: #b8d8e2; box-shadow: 0 12px 28px rgba(20, 61, 91, 0.09); }
 
-.metric-grid > div { display: flex; min-height: 4rem; flex-direction: column; justify-content: center; padding: 0.62rem 0.7rem; background: #f4f8fb; border: 1px solid #e5edf4; border-radius: 0.58rem; }
+.metric-grid > div { position: relative; display: flex; min-height: 4rem; overflow: hidden; flex-direction: column; justify-content: center; padding: 0.62rem 0.7rem; background: #f4f8fb; border: 1px solid #e5edf4; border-radius: 0.58rem; }
+.metric-grid > div::after { position: absolute; top: 0; right: 0; bottom: 0; width: 3px; content: ""; background: var(--metric-color, #9aa8b7); opacity: 0.72; }
+.metric-grid .metric-battery { --metric-color: #20b77a; background: linear-gradient(135deg, #f3fbf7, #f8fcfa); }
+.metric-grid .metric-runtime { --metric-color: #18b8d9; background: linear-gradient(135deg, #f0fbfd, #f8fcfd); }
+.metric-grid .metric-load { --metric-color: #f0a334; background: linear-gradient(135deg, #fff9ef, #fdfbf7); }
+.metric-grid .metric-power { --metric-color: #ef6c48; background: linear-gradient(135deg, #fff6f2, #fdfaf8); }
+.metric-grid .metric-voltage { --metric-color: #725bd8; background: linear-gradient(135deg, #f7f5ff, #faf9fd); }
+.metric-grid .metric-frequency { --metric-color: #397cc5; background: linear-gradient(135deg, #f2f8ff, #f9fbfd); }
+.metric-grid .metric-battery-voltage { --metric-color: #d54d81; background: linear-gradient(135deg, #fff4f8, #fdf9fb); }
 .metric-label { display: block; margin-bottom: 0.2rem; color: var(--ucc-muted); font-size: 0.7rem; }
 .metric-value { display: block; color: #1c2b40; font-size: 0.95rem; font-weight: 720; font-variant-numeric: tabular-nums; }
 
 .infra-tile { position: relative; overflow: hidden; padding: 0.85rem 0.75rem; background: #f8fafc; border: 1px solid #e3eaf2; border-radius: 0.65rem; }
 .infra-accent { position: absolute; top: 0; right: 0; left: 0; height: 3px; opacity: 0.75; }
 .infra-value { margin-top: 0.16rem; font-size: 1.75rem; font-weight: 780; font-variant-numeric: tabular-nums; letter-spacing: -0.04em; }
+
+.trend-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.trend-controls { display: flex; align-items: center; gap: 0.75rem; }
+.trend-controls .form-select { width: min(16rem, 45vw); min-height: 2.2rem; }
+.sample-caption { color: #64758a; font-size: 0.72rem; font-weight: 650; white-space: nowrap; }
+.trend-loading,
+.trend-empty { padding: 0.85rem; color: var(--ucc-muted); background: #f4f8fb; border: 1px dashed #cbd8e5; border-radius: 0.65rem; text-align: center; }
+.trend-is-loading { opacity: 0.45; pointer-events: none; }
+.chart-card { height: 100%; padding: 1rem; background: #fff; border: 1px solid #e2eaf2; border-radius: 0.78rem; box-shadow: 0 7px 20px rgba(25, 48, 78, 0.045); }
+.chart-card-runtime { background: linear-gradient(150deg, rgba(222, 248, 253, 0.55), #fff 38%); }
+.chart-card-capacity { background: linear-gradient(150deg, rgba(228, 249, 238, 0.6), #fff 38%); }
+.chart-card-voltage { background: linear-gradient(150deg, rgba(238, 234, 255, 0.58), #fff 38%); }
+.chart-card-infra { background: linear-gradient(150deg, rgba(255, 240, 226, 0.65), #fff 40%); }
+.chart-copy { display: flex; align-items: center; gap: 0.72rem; margin-bottom: 0.8rem; }
+.chart-copy h2 { margin: 0; color: #1c2a3e; font-size: 0.93rem; font-weight: 760; }
+.chart-copy p { margin: 0.13rem 0 0; color: var(--ucc-muted); font-size: 0.72rem; }
+.chart-icon { display: grid; width: 2.35rem; height: 2.35rem; flex: 0 0 auto; place-items: center; color: #087f9e; background: rgba(255, 255, 255, 0.78); border: 1px solid rgba(136, 168, 190, 0.28); border-radius: 0.7rem; font-size: 1.05rem; box-shadow: 0 4px 12px rgba(21, 54, 83, 0.07); }
+.chart-shell { position: relative; height: 15rem; min-width: 0; }
+.chart-shell-donut { height: 16.5rem; }
 
 #automationPanel dt,
 #automationPanel dd { padding-block: 0.4rem; border-bottom: 1px solid #edf1f5; }
@@ -190,8 +217,20 @@ pre#previewOutput { max-height: 28rem; overflow: auto; padding: 0.9rem; color: #
     .card-body { padding: 0.82rem; }
     .ups-status-card { padding: 0.85rem; }
     .metric-grid > div { min-height: 3.6rem; padding: 0.5rem; }
+    .trend-header { align-items: flex-start; flex-direction: column; }
+    .trend-controls { width: 100%; align-items: stretch; flex-direction: column; gap: 0.35rem; }
+    .trend-controls .form-select { width: 100%; }
+    .sample-caption { padding-left: 0.1rem; }
+    .chart-card { padding: 0.78rem; }
+    .chart-shell { height: 12.5rem; }
+    .chart-shell-donut { height: 16rem; }
     .tabulator { font-size: 0.78rem; }
     .app-footer .container-fluid { gap: 0.5rem; flex-direction: column; }
+}
+
+@media (max-width: 380px) {
+    .metric-grid > * { width: 100%; }
+    .live-caption { white-space: normal; }
 }
 
 @media (prefers-reduced-motion: reduce) {

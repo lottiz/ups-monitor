@@ -196,6 +196,11 @@ un incidente sarebbe un ostacolo nel momento peggiore.
 Crescita misurata: 1 UPS a 10 s ≈ 8.640 righe/giorno ≈ 2,6 milioni/anno. Con retention a
 90 giorni lo spazio resta nell'ordine delle centinaia di MB.
 
+Il polling e la registrazione rimangono ad alta frequenza per non perdere cambi di stato. I grafici
+del portale campionano invece l'ultima misura di ogni finestra di 20 minuti: una giornata produce
+al massimo 72 punti per UPS, mantenendo rapido il caricamento anche da telefono o su collegamenti
+remoti lenti.
+
 ### Aggiornamento
 
 ```bash

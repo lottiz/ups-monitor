@@ -140,6 +140,70 @@ else
     </div>
 </div>
 
+@if (Model.UpsList.Count > 0)
+{
+    <section class="card panel-card mb-4" id="energyTrends">
+        <div class="card-header panel-header trend-header">
+            <span>
+                <span class="section-kicker">Analisi energetica</span>
+                <span class="section-title">Trend ultime 24 ore</span>
+            </span>
+            <div class="trend-controls">
+                <label class="visually-hidden" for="trendUps">UPS visualizzato</label>
+                <select class="form-select form-select-sm" id="trendUps">
+                    @foreach (var ups in Model.UpsList)
+                    {
+                        <option value="@ups.Id">@ups.Name</option>
+                    }
+                </select>
+                <span class="sample-caption">campione ogni 20 min</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="trend-loading" id="trendLoading" role="status">Caricamento grafici…</div>
+            <div class="row g-3" id="trendCharts">
+                <div class="col-12 col-xl-6">
+                    <article class="chart-card chart-card-runtime">
+                        <div class="chart-copy">
+                            <span class="chart-icon" aria-hidden="true">⏱</span>
+                            <div><h2>Autonomia residua</h2><p>Minuti disponibili stimati dall’UPS</p></div>
+                        </div>
+                        <div class="chart-shell"><canvas id="runtimeTrendChart" role="img" aria-label="Grafico dell’autonomia residua nelle ultime 24 ore"></canvas></div>
+                    </article>
+                </div>
+                <div class="col-12 col-xl-6">
+                    <article class="chart-card chart-card-capacity">
+                        <div class="chart-copy">
+                            <span class="chart-icon" aria-hidden="true">◒</span>
+                            <div><h2>Batteria e carico</h2><p>Percentuali confrontate nel tempo</p></div>
+                        </div>
+                        <div class="chart-shell"><canvas id="capacityTrendChart" role="img" aria-label="Grafico della carica batteria e del carico UPS nelle ultime 24 ore"></canvas></div>
+                    </article>
+                </div>
+                <div class="col-12 col-xl-8">
+                    <article class="chart-card chart-card-voltage">
+                        <div class="chart-copy">
+                            <span class="chart-icon" aria-hidden="true">ϟ</span>
+                            <div><h2>Stabilità elettrica</h2><p>Tensione di ingresso e uscita</p></div>
+                        </div>
+                        <div class="chart-shell"><canvas id="voltageTrendChart" role="img" aria-label="Grafico delle tensioni di ingresso e uscita nelle ultime 24 ore"></canvas></div>
+                    </article>
+                </div>
+                <div class="col-12 col-xl-4">
+                    <article class="chart-card chart-card-infra">
+                        <div class="chart-copy">
+                            <span class="chart-icon" aria-hidden="true">◎</span>
+                            <div><h2>Infrastruttura</h2><p>Distribuzione dello stato corrente</p></div>
+                        </div>
+                        <div class="chart-shell chart-shell-donut"><canvas id="infrastructureChart" role="img" aria-label="Grafico della distribuzione degli stati dell’infrastruttura"></canvas></div>
+                    </article>
+                </div>
+            </div>
+            <p class="trend-empty d-none" id="trendEmpty">Non ci sono ancora misure sufficienti per disegnare i grafici.</p>
+        </div>
+    </section>
+}
+
 <div class="card panel-card mb-4">
     <div class="card-header panel-header"><span class="section-kicker">Inventario</span><span class="section-title">Stato infrastruttura</span></div>
     <div class="card-body">
@@ -185,5 +249,6 @@ else
 @Html.AntiForgeryToken()
 
 @section Scripts {
-<script src="~/js/dashboard.js"></script>
+<script src="~/lib/chartjs/chart.umd.min.js"></script>
+<script src="~/js/dashboard.js" asp-append-version="true"></script>
 }

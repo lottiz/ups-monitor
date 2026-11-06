@@ -15,7 +15,7 @@
         }
 
         <div class="card">
-            <div class="card-header fw-semibold">Andamento ultime 24 ore</div>
+            <div class="card-header fw-semibold">Andamento ultime 24 ore · campioni ogni 20 minuti</div>
             <div class="card-body">
                 <canvas id="historyChart" height="120" data-ups-id="@Model.Id"></canvas>
                 <p class="small text-body-secondary mt-2 mb-0">
@@ -96,5 +96,5 @@
 
 @section Scripts {
 <script src="~/lib/chartjs/chart.umd.min.js"></script>
-<script src="~/js/ups-details.js"></script>
+<script src="~/js/ups-details.js" asp-append-version="true"></script>
 }

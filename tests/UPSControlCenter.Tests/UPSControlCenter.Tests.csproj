@@ -29,6 +29,8 @@
          tutte le dipendenze runtime del portale (Identity, Serilog e provider database). -->
     <Compile Include="..\..\src\UPSControlCenter.Web\Services\DisplayTimeFormatter.cs"
              Link="Web\DisplayTimeFormatter.cs" />
+    <Compile Include="..\..\src\UPSControlCenter.Web\Services\MeasurementSeriesSampler.cs"
+             Link="Web\MeasurementSeriesSampler.cs" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

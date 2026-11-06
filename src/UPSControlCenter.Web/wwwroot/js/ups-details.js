@@ -6,7 +6,7 @@
     if (canvas) {
         const upsId = canvas.getAttribute('data-ups-id');
 
-        fetch('/api/dashboard/measurements/' + upsId + '?hours=24')
+        fetch('/api/dashboard/measurements/' + upsId + '?hours=24&sampleMinutes=20')
             .then(function (r) { return r.ok ? r.json() : []; })
             .then(function (data) {
                 const labels = data.map(function (d) {

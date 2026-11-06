@@ -31,35 +31,43 @@ public sealed class DashboardApiController(
         Ok(await state.GetAutomationStatusAsync(ct));
 
     /// <summary>
-    /// Serie storica delle misure per i grafici. Il periodo è limitato a 30 giorni per
-    /// richiesta: un intervallo illimitato su un mini PC produrrebbe query pesanti e risposte
-    /// inutilizzabili nel browser.
+    /// Serie storica delle misure per i grafici, ridotta all'ultima lettura di ogni finestra
+    /// richiesta (20 minuti per default). Il periodo è limitato a 30 giorni: un intervallo
+    /// illimitato su un mini PC produrrebbe query pesanti e risposte inutilizzabili nel browser.
     /// </summary>
     [HttpGet("measurements/{upsId:guid}")]
-    public async Task<IActionResult> GetMeasurements(Guid upsId, [FromQuery] int hours = 24,
+    public async Task<ActionResult<IReadOnlyList<UpsMeasurementHistoryDto>>> GetMeasurements(
+        Guid upsId,
+        [FromQuery] int hours = 24,
+        [FromQuery] int sampleMinutes = 20,
         CancellationToken ct = default)
     {
         var clamped = Math.Clamp(hours, 1, 24 * 30);
+        var clampedSampleMinutes = Math.Clamp(sampleMinutes, 1, 24 * 60);
         var since = DateTimeOffset.UtcNow.AddHours(-clamped);
 
-        var data = await db.UpsMeasurements
+        var readings = await db.UpsMeasurements
             .AsNoTracking()
             .Where(m => m.UpsDeviceId == upsId && m.RecordedAt >= since)
             .OrderBy(m => m.RecordedAt)
-            .Select(m => new
+            .Select(m => new UpsMeasurementHistoryDto
             {
-                m.RecordedAt,
-                m.BatteryChargePercent,
-                m.BatteryRuntimeSeconds,
-                m.LoadPercent,
-                m.InputVoltage,
-                m.OutputVoltage,
-                m.StatusRaw,
-                m.IsStale
+                RecordedAt = m.RecordedAt,
+                BatteryChargePercent = m.BatteryChargePercent,
+                BatteryRuntimeSeconds = m.BatteryRuntimeSeconds,
+                LoadPercent = m.LoadPercent,
+                InputVoltage = m.InputVoltage,
+                OutputVoltage = m.OutputVoltage,
+                StatusRaw = m.StatusRaw,
+                IsStale = m.IsStale
             })
             .ToListAsync(ct);
 
-        return Ok(data);
+        var sampled = MeasurementSeriesSampler.Sample(
+            readings,
+            TimeSpan.FromMinutes(clampedSampleMinutes));
+
+        return Ok(sampled);
     }
 
     /// <summary>Eventi recenti, per la pagina Eventi e il riquadro della dashboard.</summary>
